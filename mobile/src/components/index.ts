@@ -9,3 +9,4 @@ export { RankBadge } from "./RankBadge";
 export { ResultCard } from "./ResultCard";
 export { RewardCard } from "./RewardCard";
 export { SeasonProgressBar } from "./SeasonProgressBar";
+export { OnboardingModal } from "./OnboardingModal";
