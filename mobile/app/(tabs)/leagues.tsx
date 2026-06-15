@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { ScrollView, View, Text, TextInput, Pressable, StyleSheet } from "react-native";
-import { Eyebrow, SportLogo } from "@/components";
-import { COLORS } from "@/theme/tokens";
+import { Plus, Users, Hash, ChevronRight } from "lucide-react-native";
+import { ScreenHeader, SportLogo, LoadingSkeleton, hapticLight } from "@/components";
+import { COLORS, RADIUS } from "@/theme/tokens";
 import { FONTS } from "@/theme/fonts";
 import { SPORTS } from "@/lib/catalog";
 import { getCategoryTheme } from "@/theme/categories";
@@ -13,97 +14,223 @@ export default function LeaguesScreen() {
   const { userId } = useSession();
   const provider = getProvider();
   const [leagues, setLeagues] = useState<League[]>([]);
+  const [loading, setLoading] = useState(true);
   const [groups, setGroups] = useState<Group[]>([]);
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
   const [msg, setMsg] = useState("");
 
   useEffect(() => {
-    provider.listLeagues().then(setLeagues).catch(() => {});
+    let active = true;
+    provider
+      .listLeagues()
+      .then((l) => active && setLeagues(l))
+      .catch(() => {})
+      .finally(() => active && setLoading(false));
+    return () => {
+      active = false;
+    };
   }, [provider]);
 
   async function create() {
     if (!name) return;
+    hapticLight();
     const g = await provider.createGroup(userId, name);
-    setGroups((s) => [...s, g]);
+    setGroups((s) => [g, ...s]);
     setName("");
-    setMsg(`Created ${g.name} — share code ${g.inviteCode}`);
+    setMsg(`Mini-ligue créée — code ${g.inviteCode}`);
   }
+
   async function join() {
+    hapticLight();
     try {
       const g = await provider.joinGroup(userId, code.toUpperCase());
-      setGroups((s) => [...s, g]);
-      setMsg(`Joined ${g.name}`);
+      setGroups((s) => [g, ...s]);
+      setCode("");
+      setMsg(`Rejoint ${g.name}`);
     } catch (e) {
       setMsg((e as Error).message);
     }
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-      <Eyebrow>Competitions</Eyebrow>
-      <Text style={styles.title}>Leagues</Text>
-
-      <Eyebrow style={styles.section}>Official seasons</Eyebrow>
-      <View style={{ gap: 8 }}>
-        {leagues.map((l) => {
-          const meta = SPORTS[l.sport];
-          const accent = getCategoryTheme(l.id).accent;
-          return (
-            <View key={l.id} style={styles.leagueRow}>
-              <SportLogo sport={l.sport} size={24} />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.org}>{l.org}</Text>
-                <Text style={[styles.leagueSub, { color: accent }]}>{meta.label} · Season {l.season}</Text>
-              </View>
-              <Text style={styles.season}>{l.season}</Text>
-            </View>
-          );
-        })}
-      </View>
-
-      <Eyebrow style={styles.section}>Private mini-leagues</Eyebrow>
-      <View style={styles.card}>
-        <TextInput value={name} onChangeText={setName} placeholder="e.g. Office Hoops Crew" placeholderTextColor="rgba(168,159,201,0.6)" style={styles.input} />
-        <Pressable onPress={create} style={styles.cta}><Text style={styles.ctaText}>Create mini-league</Text></Pressable>
-        <View style={styles.divider} />
-        <TextInput value={code} onChangeText={setCode} autoCapitalize="characters" placeholder="Invite code" placeholderTextColor="rgba(168,159,201,0.6)" style={[styles.input, styles.codeInput]} />
-        <Pressable onPress={join} style={styles.ctaOutline}><Text style={styles.ctaOutlineText}>Join with code</Text></Pressable>
-      </View>
-
-      {msg ? <Text style={styles.msg}>{msg}</Text> : null}
-      {groups.length > 0 && (
-        <View style={{ gap: 8, marginTop: 12 }}>
-          {groups.map((g) => (
-            <View key={g.id} style={styles.groupRow}>
-              <Text style={styles.groupName}>{g.name}</Text>
-              <Text style={styles.groupCode}>{g.inviteCode}</Text>
-            </View>
-          ))}
+    <View style={styles.root}>
+      <ScreenHeader title="Leagues" subtitle="Compétitions" />
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Official seasons */}
+        <Text style={styles.microLabel}>SAISONS OFFICIELLES</Text>
+        <View style={styles.list}>
+          {loading
+            ? [0, 1, 2, 3].map((i) => (
+                <View key={i} style={styles.leagueCard}>
+                  <LoadingSkeleton width={24} height={24} radius={6} />
+                  <View style={{ flex: 1, gap: 6 }}>
+                    <LoadingSkeleton width={120} height={14} radius={4} />
+                    <LoadingSkeleton width={160} height={11} radius={4} />
+                  </View>
+                </View>
+              ))
+            : leagues.map((l) => {
+                const meta = SPORTS[l.sport];
+                const accent = getCategoryTheme(l.id).accent;
+                return (
+                  <View key={l.id} style={styles.leagueCard}>
+                    <SportLogo sport={l.sport} size={24} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.org}>{l.org}</Text>
+                      <Text style={styles.leagueSub}>
+                        {meta.label} · Saison {l.season}
+                      </Text>
+                    </View>
+                    <View style={[styles.dot, { backgroundColor: accent }]} />
+                    <ChevronRight size={18} color={COLORS.textFaint} />
+                  </View>
+                );
+              })}
         </View>
-      )}
-    </ScrollView>
+
+        {/* Private mini-leagues */}
+        <Text style={[styles.microLabel, styles.section]}>MINI-LIGUES PRIVÉES</Text>
+        <View style={styles.card}>
+          <TextInput
+            value={name}
+            onChangeText={setName}
+            placeholder="Nom de la mini-ligue"
+            placeholderTextColor={COLORS.textFaint}
+            style={styles.input}
+          />
+          <Pressable
+            onPress={create}
+            style={({ pressed }) => [styles.btnPrimary, pressed && styles.pressed]}
+          >
+            <Plus size={16} color={COLORS.bg} />
+            <Text style={styles.btnPrimaryText}>Créer</Text>
+          </Pressable>
+
+          <View style={styles.divider} />
+
+          <TextInput
+            value={code}
+            onChangeText={setCode}
+            autoCapitalize="characters"
+            placeholder="Code d'invitation"
+            placeholderTextColor={COLORS.textFaint}
+            style={[styles.input, styles.codeInput]}
+          />
+          <Pressable
+            onPress={join}
+            style={({ pressed }) => [styles.btnOutline, pressed && styles.pressed]}
+          >
+            <Users size={16} color={COLORS.text} />
+            <Text style={styles.btnOutlineText}>Rejoindre</Text>
+          </Pressable>
+        </View>
+
+        {msg ? <Text style={styles.msg}>{msg}</Text> : null}
+
+        {groups.length > 0 && (
+          <View style={[styles.list, { marginTop: 12 }]}>
+            {groups.map((g) => {
+              const accent = getCategoryTheme("default").accent;
+              return (
+                <View key={g.id} style={styles.groupRow}>
+                  <Text style={styles.groupName}>{g.name}</Text>
+                  <View style={styles.codeChip}>
+                    <Hash size={12} color={COLORS.textFaint} />
+                    <Text style={[styles.groupCode, { color: accent }]}>{g.inviteCode}</Text>
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        )}
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  content: { paddingHorizontal: 20, paddingTop: 28, paddingBottom: 32 },
-  title: { fontFamily: FONTS.display, fontSize: 30, color: COLORS.white, marginTop: 8, marginBottom: 4, letterSpacing: -0.5 },
-  section: { marginTop: 24, marginBottom: 8 },
-  leagueRow: { flexDirection: "row", alignItems: "center", gap: 12, borderWidth: StyleSheet.hairlineWidth, borderColor: COLORS.line, backgroundColor: "rgba(21,17,42,0.6)", borderRadius: 16, paddingHorizontal: 16, paddingVertical: 12 },
-  org: { fontFamily: FONTS.displayBold, fontSize: 15, color: COLORS.white },
-  leagueSub: { fontFamily: FONTS.body, fontSize: 12, marginTop: 2 },
-  season: { fontFamily: FONTS.mono, fontSize: 12, color: COLORS.muted },
-  card: { gap: 12, borderRadius: 20, borderWidth: StyleSheet.hairlineWidth, borderColor: COLORS.line, backgroundColor: "rgba(21,17,42,0.6)", padding: 16 },
-  input: { borderWidth: StyleSheet.hairlineWidth, borderColor: COLORS.line, backgroundColor: COLORS.ink, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12, fontFamily: FONTS.body, fontSize: 14, color: COLORS.white },
+  root: { flex: 1, backgroundColor: COLORS.bg },
+  content: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 40 },
+  microLabel: {
+    fontFamily: FONTS.mono,
+    fontSize: 11,
+    letterSpacing: 2,
+    color: COLORS.textFaint,
+    marginBottom: 12,
+  },
+  section: { marginTop: 28 },
+  list: { gap: 8 },
+  leagueCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.lg,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  org: { fontFamily: FONTS.displayBold, fontSize: 15, color: COLORS.text },
+  leagueSub: { fontFamily: FONTS.body, fontSize: 12, color: COLORS.textMuted, marginTop: 2 },
+  dot: { width: 8, height: 8, borderRadius: 4 },
+  card: {
+    gap: 12,
+    borderRadius: RADIUS.lg,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.surface,
+    padding: 16,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.surfaceAlt,
+    borderRadius: RADIUS.md,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontFamily: FONTS.body,
+    fontSize: 14,
+    color: COLORS.text,
+  },
   codeInput: { fontFamily: FONTS.mono, letterSpacing: 3 },
-  cta: { backgroundColor: COLORS.violet, borderRadius: 14, paddingVertical: 13, alignItems: "center" },
-  ctaText: { fontFamily: FONTS.displayBold, fontSize: 14, color: "#fff" },
-  ctaOutline: { borderWidth: 1, borderColor: COLORS.violet, borderRadius: 14, paddingVertical: 13, alignItems: "center" },
-  ctaOutlineText: { fontFamily: FONTS.displayBold, fontSize: 14, color: COLORS.violetLight },
-  divider: { height: StyleSheet.hairlineWidth, backgroundColor: COLORS.line },
-  msg: { marginTop: 12, fontFamily: FONTS.body, fontSize: 13, color: COLORS.muted },
-  groupRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", borderWidth: StyleSheet.hairlineWidth, borderColor: COLORS.line, backgroundColor: "rgba(21,17,42,0.6)", borderRadius: 14, paddingHorizontal: 16, paddingVertical: 12 },
-  groupName: { fontFamily: FONTS.bodyMed, fontSize: 14, color: COLORS.white },
-  groupCode: { fontFamily: FONTS.mono, fontSize: 12, letterSpacing: 2, color: COLORS.violetLight },
+  btnPrimary: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: COLORS.text,
+    borderRadius: RADIUS.md,
+    paddingVertical: 13,
+  },
+  btnPrimaryText: { fontFamily: FONTS.displayBold, fontSize: 14, color: COLORS.bg },
+  btnOutline: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    borderWidth: 1,
+    borderColor: COLORS.borderStrong,
+    borderRadius: RADIUS.md,
+    paddingVertical: 13,
+  },
+  btnOutlineText: { fontFamily: FONTS.displayBold, fontSize: 14, color: COLORS.text },
+  pressed: { opacity: 0.7 },
+  divider: { height: 1, backgroundColor: COLORS.border },
+  msg: { marginTop: 12, fontFamily: FONTS.body, fontSize: 13, color: COLORS.textMuted },
+  groupRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.md,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  groupName: { fontFamily: FONTS.bodyMed, fontSize: 14, color: COLORS.text },
+  codeChip: { flexDirection: "row", alignItems: "center", gap: 4 },
+  groupCode: { fontFamily: FONTS.mono, fontSize: 12, letterSpacing: 2 },
 });
