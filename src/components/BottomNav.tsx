@@ -3,25 +3,35 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const tabs = [
-  { href: "/", label: "Predict" },
-  { href: "/leaderboard", label: "Ranking" },
-  { href: "/groups", label: "Groups" },
-  { href: "/profile", label: "Profile" },
+  { href: "/", label: "Predict", icon: "◎" },
+  { href: "/leaderboard", label: "Ranking", icon: "▦" },
+  { href: "/groups", label: "Leagues", icon: "⬡" },
+  { href: "/profile", label: "You", icon: "◆" },
 ];
 
 export function BottomNav() {
   const path = usePathname();
   return (
-    <nav className="fixed bottom-0 inset-x-0 mx-auto max-w-md grid grid-cols-4 border-t bg-white">
-      {tabs.map((t) => (
-        <Link
-          key={t.href}
-          href={t.href}
-          className={`py-3 text-center text-xs font-medium ${path === t.href ? "text-brand" : "text-gray-500"}`}
-        >
-          {t.label}
-        </Link>
-      ))}
+    <nav className="fixed inset-x-0 bottom-0 z-20 mx-auto max-w-md border-t border-line bg-ink-800/80 backdrop-blur-lg">
+      <div className="grid grid-cols-4">
+        {tabs.map((t) => {
+          const active = path === t.href;
+          return (
+            <Link
+              key={t.href}
+              href={t.href}
+              className={`flex flex-col items-center gap-1 py-3 text-[0.7rem] font-semibold transition-colors ${
+                active ? "text-white" : "text-muted"
+              }`}
+            >
+              <span aria-hidden className={`text-base leading-none ${active ? "text-lime" : ""}`}>
+                {t.icon}
+              </span>
+              {t.label}
+            </Link>
+          );
+        })}
+      </div>
     </nav>
   );
 }

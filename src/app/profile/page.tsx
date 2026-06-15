@@ -11,21 +11,34 @@ export default function ProfilePage() {
     getProvider().getProfile(userId).then(setProfile);
   }, [userId]);
 
-  const stat = (label: string, value: number | string) => (
-    <div className="rounded-xl border bg-white p-4 text-center">
-      <div className="text-2xl font-bold text-brand">{value}</div>
-      <div className="text-xs text-gray-500">{label}</div>
+  return (
+    <div className="px-5 pt-7">
+      <div className="flex items-center gap-4">
+        <div className="grid h-14 w-14 place-items-center rounded-2xl border border-line bg-violet/15 font-display text-xl font-bold text-violet-light">
+          {displayName.slice(0, 1)}
+        </div>
+        <div>
+          <p className="eyebrow">Predictor</p>
+          <h1 className="font-display text-2xl font-extrabold tracking-tight">{displayName}</h1>
+        </div>
+      </div>
+
+      <div className="mt-6 grid grid-cols-3 gap-3">
+        <Tile value={profile?.totalPoints ?? 0} label="Points" tone="lime" />
+        <Tile value={profile?.currentStreak ?? 0} label="Streak" tone="amber" />
+        <Tile value={profile?.bestStreak ?? 0} label="Best" tone="violet" />
+      </div>
     </div>
   );
+}
 
+const TONE = { lime: "text-lime", amber: "text-amber", violet: "text-violet-light" } as const;
+
+function Tile({ value, label, tone }: { value: number; label: string; tone: keyof typeof TONE }) {
   return (
-    <div className="space-y-4 p-4">
-      <h1 className="text-2xl font-bold text-brand">{displayName}</h1>
-      <div className="grid grid-cols-3 gap-2">
-        {stat("Points", profile?.totalPoints ?? 0)}
-        {stat("Streak", profile?.currentStreak ?? 0)}
-        {stat("Best", profile?.bestStreak ?? 0)}
-      </div>
+    <div className="rounded-2xl border border-line bg-ink-800/60 px-3 py-5 text-center">
+      <div className={`font-mono text-3xl font-bold ${TONE[tone]}`}>{value}</div>
+      <div className="mt-1 text-xs text-muted">{label}</div>
     </div>
   );
 }

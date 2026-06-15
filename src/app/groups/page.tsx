@@ -17,7 +17,7 @@ export default function GroupsPage() {
     const g = await provider.createGroup(userId, name);
     setGroups((s) => [...s, g]);
     setName("");
-    setMsg(`Created ${g.name} — invite code ${g.inviteCode}`);
+    setMsg(`Created ${g.name} — share code ${g.inviteCode}`);
   }
   async function join() {
     try {
@@ -29,39 +29,42 @@ export default function GroupsPage() {
     }
   }
 
+  const input =
+    "w-full rounded-xl border border-line bg-ink px-3.5 py-3 text-sm text-white placeholder:text-muted/60 focus:border-violet";
+
   return (
-    <div className="space-y-4 p-4">
-      <h1 className="text-2xl font-bold text-brand">Groups</h1>
-      <div className="space-y-2 rounded-xl border bg-white p-4">
-        <input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="New league name"
-          className="w-full rounded border px-3 py-2"
-        />
-        <button onClick={create} className="w-full rounded bg-brand py-2 text-white">
+    <div className="px-5 pt-7">
+      <p className="eyebrow">Private leagues</p>
+      <h1 className="mt-2 mb-5 font-display text-3xl font-extrabold tracking-tight">Your Leagues</h1>
+
+      <div className="space-y-3 rounded-2xl border border-line bg-ink-800/60 p-4">
+        <label className="eyebrow block">Start a league</label>
+        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Sunday Pub Crew" className={input} />
+        <button onClick={create} className="w-full rounded-xl bg-violet py-3 text-sm font-bold text-white shadow-glow transition hover:bg-violet-light">
           Create league
         </button>
       </div>
-      <div className="space-y-2 rounded-xl border bg-white p-4">
-        <input
-          value={code}
-          onChange={(e) => setCode(e.target.value)}
-          placeholder="Invite code"
-          className="w-full rounded border px-3 py-2"
-        />
-        <button onClick={join} className="w-full rounded border border-brand py-2 text-brand">
+
+      <div className="mt-4 space-y-3 rounded-2xl border border-line bg-ink-800/60 p-4">
+        <label className="eyebrow block">Got an invite code?</label>
+        <input value={code} onChange={(e) => setCode(e.target.value)} placeholder="6-character code" className={`${input} font-mono uppercase tracking-widest`} />
+        <button onClick={join} className="w-full rounded-xl border border-violet py-3 text-sm font-bold text-violet-light transition hover:bg-violet/10">
           Join league
         </button>
       </div>
-      {msg && <p className="text-sm text-gray-600">{msg}</p>}
-      <ul className="space-y-1">
-        {groups.map((g) => (
-          <li key={g.id} className="rounded bg-white px-3 py-2 text-sm">
-            {g.name} — <b>{g.inviteCode}</b>
-          </li>
-        ))}
-      </ul>
+
+      {msg && <p className="mt-4 text-sm text-muted">{msg}</p>}
+
+      {groups.length > 0 && (
+        <ul className="mt-4 space-y-2">
+          {groups.map((g) => (
+            <li key={g.id} className="flex items-center justify-between rounded-xl border border-line bg-ink-800/60 px-4 py-3">
+              <span className="font-semibold">{g.name}</span>
+              <span className="font-mono text-xs tracking-widest text-violet-light">{g.inviteCode}</span>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

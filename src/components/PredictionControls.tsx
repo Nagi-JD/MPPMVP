@@ -7,11 +7,6 @@ const labels: Record<Outcome, (e: GameEvent) => string> = {
   away: (e) => e.away,
 };
 
-const SELECTED = "border-brand bg-brand text-white shadow-sm";
-const IDLE = "border-gray-200 bg-white text-gray-700 hover:border-brand/40";
-const CORRECT = "border-emerald-500 bg-emerald-500 text-white";
-const WRONG = "border-rose-200 bg-rose-50 text-rose-400 line-through";
-
 export function PredictionControls({
   event,
   choice,
@@ -28,23 +23,26 @@ export function PredictionControls({
 
   function cls(o: Outcome): string {
     if (settled) {
-      if (o === event.result) return CORRECT;
-      if (o === choice) return WRONG;
-      return "border-gray-200 bg-white text-gray-400";
+      if (o === event.result) return "bg-lime text-ink shadow-glow-lime";
+      if (o === choice) return "text-magenta/70 line-through";
+      return "text-muted/50";
     }
-    return choice === o ? SELECTED : IDLE;
+    return choice === o
+      ? "bg-violet text-white shadow-glow"
+      : "text-muted hover:text-white";
   }
 
   return (
-    <div className={`mt-3 grid gap-2 ${opts.length === 3 ? "grid-cols-3" : "grid-cols-2"}`}>
+    <div className="grid gap-1.5 rounded-xl border border-line bg-ink p-1.5"
+      style={{ gridTemplateColumns: `repeat(${opts.length}, minmax(0,1fr))` }}>
       {opts.map((o) => (
         <button
           key={o}
           disabled={disabled}
           onClick={() => onPick(o)}
-          className={`rounded-lg border px-2 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-90 ${cls(o)}`}
+          className={`rounded-lg px-2 py-2.5 text-sm font-semibold transition-colors duration-150 disabled:cursor-not-allowed ${cls(o)}`}
         >
-          {labels[o](event)}
+          <span className="block truncate">{labels[o](event)}</span>
         </button>
       ))}
     </div>

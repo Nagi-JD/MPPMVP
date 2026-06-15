@@ -1,5 +1,76 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-:root { color-scheme: light dark; }
-body { @apply bg-gray-50 text-gray-900 antialiased; }
+
+:root {
+  color-scheme: dark;
+}
+
+@layer base {
+  body {
+    @apply bg-ink text-[#F5F3FF] font-sans antialiased;
+    /* Floodlight glow bleeding from the top of the arena. */
+    background-image:
+      radial-gradient(120% 60% at 50% -10%, rgba(139, 92, 246, 0.22), transparent 60%),
+      radial-gradient(90% 50% at 100% 0%, rgba(232, 121, 249, 0.12), transparent 55%);
+    background-attachment: fixed;
+  }
+
+  /* Tabular figures everywhere we show HUD numbers. */
+  .font-mono {
+    font-variant-numeric: tabular-nums;
+  }
+
+  :focus-visible {
+    outline: 2px solid #b6ff3c;
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+}
+
+@layer components {
+  .app-frame {
+    @apply mx-auto w-full max-w-md;
+  }
+
+  /* Eyebrow label — wide, quiet, mono. */
+  .eyebrow {
+    @apply font-mono text-[0.65rem] uppercase tracking-[0.22em] text-muted;
+  }
+
+  /* The signature: a prediction ticket. */
+  .ticket {
+    @apply relative rounded-2xl border border-line bg-ink-800/80 backdrop-blur transition-shadow;
+  }
+  .ticket:hover {
+    @apply shadow-glow;
+  }
+
+  /* Perforated seam between the matchup and the pick bar. */
+  .ticket-seam {
+    @apply relative my-3 h-px;
+    background-image: linear-gradient(to right, rgba(255, 255, 255, 0.18) 0 6px, transparent 6px 12px);
+    background-size: 12px 1px;
+  }
+  .ticket-seam::before,
+  .ticket-seam::after {
+    content: "";
+    @apply absolute top-1/2 h-3.5 w-3.5 -translate-y-1/2 rounded-full bg-ink;
+  }
+  .ticket-seam::before {
+    left: -1.4rem;
+  }
+  .ticket-seam::after {
+    right: -1.4rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
