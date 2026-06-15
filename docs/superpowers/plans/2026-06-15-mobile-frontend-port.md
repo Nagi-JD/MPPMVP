@@ -1700,3 +1700,31 @@ git commit -m "chore(mobile): remove legacy App.tsx entry; finalize frontend por
 **Placeholder scan:** No TBD/TODO; every code step contains complete file content.
 
 **Known follow-ups (out of scope, noted for later):** backend endpoints for predictions-list / profile / rewards / display-names would let the fallbacks be replaced; `settleMarket` is wired but unused by any screen (kept for interface parity with web).
+
+---
+
+# REVISION 2 — Visual Fidelity to the Web (src/) Design
+
+**Why:** The first screen pass reused the mobile starter's per-sport *full reskin* theme (F1=red, NBA=blue) and choice-only inputs. The user's canonical design is `src/` — a single ink/violet/lime brand with floodlight glow, "ticket" cards, hand-drawn SportLogos, and choice/score/podium inputs. Sport is a SMALL accent only (basketball→amber, F1→magenta). This revision rebuilds the visual layer to mirror `src/` 1:1 and removes the mismatched starter components.
+
+**Keep (already correct):** data layer (`lib/data/*`, `predictionsCache`), `store/useSession`, pure libs (`types/scoring/time`), expo-router routing skeleton, backend CORS, `theme/fonts.ts`.
+
+**Replace:** `theme/sportThemes.ts` + `theme/useSportTheme.tsx` (per-sport reskin) → fixed web tokens. All `components/*` starter components → web-faithful ports. All 5 screens rewired.
+
+**Design tokens (from tailwind.config.ts):** ink {DEFAULT #0B0916, 800 #15112A, 700 #1E1838, 600 #272047}, line rgba(255,255,255,0.08), violet #8B5CF6 / light #A78BFA / dark #6D28D9, magenta #E879F9, lime #B6FF3C, amber #FFB020, muted #A89FC9, bronze #C98A5E. Glow shadow rgba(139,92,246,0.55). Fonts: Archivo display, Inter sans, JetBrains mono (already loaded).
+
+**Catalog SPORTS meta (accent COLOR + emoji + confirm word):** basketball → accent amber #FFB020, 🏀, "Swish"; f1 → accent magenta #E879F9, 🏎️, "Lights out". TIER_COLOR: Diamond lime, Platinum violet-light, Gold amber, Silver muted, Bronze #C98A5E, Rookie muted@60%.
+
+## Revised Tasks
+
+- **R1 — Foundation:** `expo install react-native-svg @react-native-picker/picker`. Create `mobile/src/theme/tokens.ts` (COLORS, RADIUS, GLOW). Extend `mobile/src/lib/catalog.ts` with `SPORTS` (accent/emoji/label/confirm) and `TIER_COLOR`. Typecheck. Commit.
+- **R2 — Atoms:** `SportLogo.tsx` (react-native-svg port of the F1 wedge + basketball SVGs), `RankBadge.tsx` (tier-colored pill), `Eyebrow.tsx` (mono uppercase label), `Floodlight.tsx` (layered LinearGradient approximating the violet/magenta radial wash). Commit.
+- **R3 — Market + ticket:** `MarketRow.tsx` (choice chips violet-selected; score = two numeric inputs with ` : `; podium = 3 Pickers P1/P2/P3; Confirm/Update violet button; "Locked: …"; settled view with result + ±pts; validation flash overlay with sport emoji + confirm word) and `FixtureCard.tsx` (ticket: sport-tinted header gradient, SportLogo, scope label, lime pulse dot / "Settled", title, venue, MarketRows). Commit.
+- **R4 — OnboardingModal:** web-faithful (eyebrow, "Pick your sports", sport rows with SportLogo + accent subtitle + lime check, violet "Start predicting"). Commit.
+- **R5 — Shell:** root `_layout.tsx` uses `Floodlight` over ink bg (drop per-sport provider); `(tabs)/_layout.tsx` restyled as the web BottomNav (ink-800 bar, lime active icon, glyphs ◎ ▦ ⬡ ✦ ◆, labels Predict/Ranking/Leagues/Rewards/You). Commit.
+- **R6 — Home:** rewire to FixtureCard/MarketRow; eyebrow "Match day" + "Call it, {name}." title; league chips (SportLogo + org+season, accent border when active); season-stat banner (RankBadge + correct% + lime points). Commit.
+- **R7 — Leaderboard:** eyebrow "Standings" + "Season Ranking"; league chips; ordered rows with padded rank, medal colors [lime,violet-light,amber], "you" highlight (violet/10 bg), RankBadge, accuracy%, points. Commit.
+- **R8 — Leagues:** eyebrow "Competitions"; official seasons list (SportLogo + org + accent label); private mini-leagues create (name input → createGroup) + join (code input → joinGroup) with violet buttons + message + created groups list. Commit.
+- **R9 — Profile:** avatar initial tile, displayName, total pts (lime); per-season cards (filter made>0) with SportLogo + org + RankBadge + 3 cells (Points lime / Accuracy accent / Correct white). Commit.
+- **R10 — Rewards:** static badges grid (6 badges with tone colors + "Soon" pill) + seasonal-prizes gradient card + disabled "Premium — coming soon". Commit.
+- **R11 — Cleanup:** delete unused starter components (EventCard, PredictionCard, PredictionButton, LeaderboardRow, LeagueCard, ResultCard, RewardCard, SeasonProgressBar, SportHeader, SportCard) + `theme/sportThemes.ts` + `theme/useSportTheme.tsx`; rewrite `components/index.ts`; full typecheck + tests + runtime smoke. Commit.
