@@ -1,26 +1,25 @@
 import React from "react";
 import { Text } from "react-native";
 import { Tabs } from "expo-router";
-import { useSportTheme } from "@/theme/useSportTheme";
+import { COLORS } from "@/theme/tokens";
 import { FONTS } from "@/theme/fonts";
 
-const TABS: { name: string; title: string }[] = [
-  { name: "index", title: "Match Day" },
-  { name: "leagues", title: "Leagues" },
-  { name: "leaderboard", title: "Ranks" },
-  { name: "rewards", title: "Rewards" },
-  { name: "profile", title: "Profile" },
+const TABS: { name: string; title: string; icon: string }[] = [
+  { name: "index", title: "Predict", icon: "◎" },
+  { name: "leaderboard", title: "Ranking", icon: "▦" },
+  { name: "leagues", title: "Leagues", icon: "⬡" },
+  { name: "rewards", title: "Rewards", icon: "✦" },
+  { name: "profile", title: "You", icon: "◆" },
 ];
 
 export default function TabsLayout() {
-  const t = useSportTheme();
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: t.text,
-        tabBarInactiveTintColor: t.mutedText,
-        tabBarStyle: { backgroundColor: t.surface, borderTopColor: t.border, borderTopWidth: 1 },
+        tabBarActiveTintColor: COLORS.white,
+        tabBarInactiveTintColor: COLORS.muted,
+        tabBarStyle: { backgroundColor: COLORS.ink800, borderTopColor: COLORS.line, borderTopWidth: 1 },
         tabBarLabelStyle: { fontFamily: FONTS.bodyMed, fontSize: 11 },
       }}
     >
@@ -30,7 +29,9 @@ export default function TabsLayout() {
           name={tab.name}
           options={{
             title: tab.title,
-            tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 16 }}>●</Text>,
+            tabBarIcon: ({ focused }) => (
+              <Text style={{ color: focused ? COLORS.lime : COLORS.muted, fontSize: 16 }}>{tab.icon}</Text>
+            ),
           }}
         />
       ))}
