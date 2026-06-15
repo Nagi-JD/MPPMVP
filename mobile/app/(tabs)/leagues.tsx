@@ -4,6 +4,7 @@ import { Eyebrow, SportLogo } from "@/components";
 import { COLORS } from "@/theme/tokens";
 import { FONTS } from "@/theme/fonts";
 import { SPORTS } from "@/lib/catalog";
+import { getCategoryTheme } from "@/theme/categories";
 import { getProvider } from "@/lib/data/client";
 import { useSession } from "@/store/useSession";
 import type { Group, League } from "@/lib/types";
@@ -47,12 +48,13 @@ export default function LeaguesScreen() {
       <View style={{ gap: 8 }}>
         {leagues.map((l) => {
           const meta = SPORTS[l.sport];
+          const accent = getCategoryTheme(l.id).accent;
           return (
             <View key={l.id} style={styles.leagueRow}>
               <SportLogo sport={l.sport} size={24} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.org}>{l.org}</Text>
-                <Text style={[styles.leagueSub, { color: meta.accent }]}>{meta.label} · Season {l.season}</Text>
+                <Text style={[styles.leagueSub, { color: accent }]}>{meta.label} · Season {l.season}</Text>
               </View>
               <Text style={styles.season}>{l.season}</Text>
             </View>

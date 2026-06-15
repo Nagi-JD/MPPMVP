@@ -3,7 +3,8 @@ import { ScrollView, View, Text, Pressable, StyleSheet } from "react-native";
 import { Eyebrow, SportLogo, RankBadge } from "@/components";
 import { COLORS } from "@/theme/tokens";
 import { FONTS } from "@/theme/fonts";
-import { SPORTS } from "@/lib/catalog";
+import { getCategoryTheme, resolveCategory } from "@/theme/categories";
+import { useCategory } from "@/theme/ThemeProvider";
 import { getProvider } from "@/lib/data/client";
 import { useSession } from "@/store/useSession";
 import type { League, LeaderboardRow } from "@/lib/types";
@@ -13,6 +14,7 @@ const MEDAL = [COLORS.lime, COLORS.violetLight, COLORS.amber];
 export default function LeaderboardScreen() {
   const { userId, favorites } = useSession();
   const provider = getProvider();
+  const { setCategory } = useCategory();
   const [leagues, setLeagues] = useState<League[]>([]);
   const [active, setActive] = useState("");
   const [rows, setRows] = useState<LeaderboardRow[]>([]);
@@ -30,6 +32,10 @@ export default function LeaderboardScreen() {
   }, [visible, active]);
 
   useEffect(() => {
+    if (active) setCategory(resolveCategory(active));
+  }, [active, setCategory]);
+
+  useEffect(() => {
     if (active) provider.leaderboard(active).then(setRows).catch(() => setRows([]));
   }, [active, provider]);
 
@@ -41,11 +47,11 @@ export default function LeaderboardScreen() {
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
         {visible.map((l) => {
-          const meta = SPORTS[l.sport];
+          const accent = getCategoryTheme(l.id).accent;
           const on = l.id === active;
           return (
             <Pressable key={l.id} onPress={() => setActive(l.id)}
-              style={[styles.chip, { borderColor: on ? meta.accent : COLORS.line, backgroundColor: on ? "rgba(255,255,255,0.05)" : "transparent" }]}>
+              style={[styles.chip, { borderColor: on ? accent : COLORS.line, backgroundColor: on ? "rgba(255,255,255,0.05)" : "transparent" }]}>
               <SportLogo sport={l.sport} size={14} />
               <Text style={{ color: on ? COLORS.white : COLORS.muted, fontFamily: FONTS.bodyMed, fontSize: 13 }}>{l.org} {l.season}</Text>
             </Pressable>

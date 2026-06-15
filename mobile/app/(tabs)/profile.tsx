@@ -3,7 +3,7 @@ import { ScrollView, View, Text, StyleSheet } from "react-native";
 import { Eyebrow, SportLogo, RankBadge } from "@/components";
 import { COLORS } from "@/theme/tokens";
 import { FONTS } from "@/theme/fonts";
-import { SPORTS } from "@/lib/catalog";
+import { getCategoryTheme } from "@/theme/categories";
 import { getProvider } from "@/lib/data/client";
 import { useSession } from "@/store/useSession";
 import type { League, Profile, SeasonStats } from "@/lib/types";
@@ -47,7 +47,7 @@ export default function ProfileScreen() {
       ) : (
         <View style={{ gap: 12 }}>
           {seasons.map(({ league, stats }) => {
-            const meta = SPORTS[league.sport];
+            const accent = getCategoryTheme(league.id).accent;
             return (
               <View key={league.id} style={styles.card}>
                 <View style={styles.cardHead}>
@@ -57,7 +57,7 @@ export default function ProfileScreen() {
                 </View>
                 <View style={styles.cells}>
                   <Cell value={stats.points} label="Points" tone={COLORS.lime} />
-                  <Cell value={`${Math.round(stats.accuracy * 100)}%`} label="Accuracy" tone={meta.accent} />
+                  <Cell value={`${Math.round(stats.accuracy * 100)}%`} label="Accuracy" tone={accent} />
                   <Cell value={`${stats.correct}/${stats.settled}`} label="Correct" tone={COLORS.white} />
                 </View>
               </View>

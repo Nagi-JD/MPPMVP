@@ -3,7 +3,8 @@ import { ScrollView, View, Text, Pressable, StyleSheet, ActivityIndicator } from
 import { Eyebrow, SportLogo, RankBadge, FixtureCard } from "@/components";
 import { COLORS } from "@/theme/tokens";
 import { FONTS } from "@/theme/fonts";
-import { SPORTS } from "@/lib/catalog";
+import { getCategoryTheme, resolveCategory } from "@/theme/categories";
+import { useCategory } from "@/theme/ThemeProvider";
 import { getProvider } from "@/lib/data/client";
 import { useSession } from "@/store/useSession";
 import type { FixtureBoard } from "@/lib/data/provider";
@@ -12,6 +13,7 @@ import type { League, Prediction, SeasonStats } from "@/lib/types";
 export default function HomeScreen() {
   const { userId, displayName, favorites } = useSession();
   const provider = getProvider();
+  const { setCategory } = useCategory();
 
   const [leagues, setLeagues] = useState<League[]>([]);
   const [activeLeague, setActiveLeague] = useState("");
@@ -33,6 +35,10 @@ export default function HomeScreen() {
   useEffect(() => {
     if (visible.length && !visible.some((l) => l.id === activeLeague)) setActiveLeague(visible[0].id);
   }, [visible, activeLeague]);
+
+  useEffect(() => {
+    if (activeLeague) setCategory(resolveCategory(activeLeague));
+  }, [activeLeague, setCategory]);
 
   useEffect(() => {
     if (!activeLeague) return;
@@ -60,23 +66,24 @@ export default function HomeScreen() {
   }
 
   const firstName = displayName.split(" ")[0];
+  const titleAccent = getCategoryTheme(activeLeague).accent;
 
   return (
     <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       <View style={styles.header}>
         <Eyebrow>Match day</Eyebrow>
         <Text style={styles.title}>
-          Call it, <Text style={{ color: COLORS.violetLight }}>{firstName}</Text>.
+          Call it, <Text style={{ color: titleAccent }}>{firstName}</Text>.
         </Text>
       </View>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
         {visible.map((l) => {
-          const meta = SPORTS[l.sport];
+          const accent = getCategoryTheme(l.id).accent;
           const on = l.id === activeLeague;
           return (
             <Pressable key={l.id} onPress={() => setActiveLeague(l.id)}
-              style={[styles.chip, { borderColor: on ? meta.accent : COLORS.line, backgroundColor: on ? "rgba(255,255,255,0.05)" : "transparent" }]}>
+              style={[styles.chip, { borderColor: on ? accent : COLORS.line, backgroundColor: on ? "rgba(255,255,255,0.05)" : "transparent" }]}>
               <SportLogo sport={l.sport} size={14} />
               <Text style={{ color: on ? COLORS.white : COLORS.muted, fontFamily: FONTS.bodyMed, fontSize: 13 }}>{l.org} {l.season}</Text>
             </Pressable>
