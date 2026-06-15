@@ -1749,3 +1749,20 @@ resolveCategory(idOrSport): f1/formula→f1, nba→nba, euro→euroleague, lnb�
 - **V3-T3 Accents:** FixtureCard resolves accent from fixture.leagueId, passes to MarketRow.
 - **V3-T4 Screens:** Home + Leaderboard chips use category accent + setCategory on active league; Leagues + Profile accents.
 - **V3-T5 Editable favorites:** generalize OnboardingModal (initial/ctaLabel/title) + "Edit my sports" on Profile → setFavorites.
+
+---
+
+# REVISION 4 — Premium neutral-graphite redesign (Apple Sports / SofaScore)
+
+**Direction (supersedes R2/R3 visuals):** neutral premium dark — near-black bg, graphite surfaces, subtle borders, soft contrast, data-first. Sport accent used SPARINGLY (active tab, selected prediction, CTA, badge, small marker), never flooding the screen. Remove Floodlight + per-category background tint + violet/lime wash. Premium feel via Reanimated springs, expo-haptics, sticky BlurView header, Lucide icons, skeletons/empty/error, FlatList. Accents: NBA orange, EuroLeague gold/orange, LNB blue/red, F1 deep red #E10600. Sequence: redesign now; real-data wiring (Node service) plugs into the new typed components next. Basketball test data = season 2023-2024 (free tier); F1 live.
+
+**New tokens (theme/tokens.ts rewrite):** bg #08080A, surface #141417, surfaceAlt #1C1C21, border rgba(255,255,255,0.07), text #F3F3F5, textMuted #8E8E96, textFaint #5A5A62. Radius sm10/md14/lg18. Restrained sport accents in theme/categories.ts (keep getCategoryTheme but neutral usage). Keep Archivo(title)/Inter(body)/JetBrains(mono/numbers) fonts.
+
+## Tasks
+- **V4-T0 Foundation:** expo install react-native-reanimated, expo-haptics, expo-blur, lucide-react-native (gesture-handler + svg already present). Add reanimated babel plugin (babel.config.js). GestureHandlerRootView in root layout. Rewrite tokens.ts → graphite neutral. Soften categories.ts accents for restrained use. Remove Floodlight bg flood (plain graphite bg; keep ThemeProvider for current accent only). Typecheck + web bundle.
+- **V4-T1 Primitives:** StatusBadge (live pulse via Reanimated), LoadingSkeleton (shimmer), EmptyState, AnimatedCounter (Reanimated points count-up), PointsSummary, ScreenHeader (sticky BlurView, sport+date+points/accuracy), Lucide icon usage. haptics util.
+- **V4-T2 SportTabs:** animated active indicator (Reanimated shared transition), quiet inactive, accent active, haptic on switch. Replaces in-screen category selector.
+- **V4-T3 MatchCard + PredictionButton:** strong hierarchy (competition + status row; home/away + time; Winner section w/ 2 team buttons; footer deadline/possible points/confirmation). PredictionButton states: idle/selected/confirmed/locked/correct/wrong, spring + haptic. Keep score/podium markets functional, restyled compact.
+- **V4-T4 Screens:** rewire Home/Leaderboard/Leagues/Profile/Rewards to graphite tokens + new components, FlatList for match lists, skeleton/empty/error+retry states, safe areas.
+- **V4-T5 Bottom nav:** Lucide icons, graphite bar, active accent, haptic on tab change.
+- **V4-T6 Cleanup + verify:** remove dead Floodlight/old styling; typecheck + tests + web bundle; runtime smoke.
