@@ -1,28 +1,43 @@
-/** Design tokens mirrored from the web app's tailwind.config.ts. Single brand. */
+/** Premium neutral-graphite design tokens (Apple Sports / SofaScore style). */
 export const COLORS = {
-  ink: "#0B0916",
-  ink800: "#15112A",
-  ink700: "#1E1838",
-  ink600: "#272047",
-  line: "rgba(255,255,255,0.08)",
-  violet: "#8B5CF6",
-  violetLight: "#A78BFA",
-  violetDark: "#6D28D9",
-  magenta: "#E879F9",
-  lime: "#B6FF3C",
-  amber: "#FFB020",
-  muted: "#A89FC9",
-  white: "#F5F3FF",
+  // semantic (preferred going forward)
+  bg: "#08080A",
+  surface: "#141417",
+  surfaceAlt: "#1C1C21",
+  border: "rgba(255,255,255,0.07)",
+  borderStrong: "rgba(255,255,255,0.12)",
+  text: "#F3F3F5",
+  textMuted: "#8E8E96",
+  textFaint: "#5A5A62",
+  // legacy keys remapped to graphite (kept so existing components compile;
+  // migrated away in later tasks)
+  ink: "#08080A",
+  ink800: "#141417",
+  ink700: "#1C1C21",
+  ink600: "#26262C",
+  line: "rgba(255,255,255,0.07)",
+  white: "#F3F3F5",
+  muted: "#8E8E96",
+  // neutral default accent (sport accents override via categories.ts)
+  violet: "#E8E8EC",
+  violetLight: "#FFFFFF",
+  violetDark: "#C9C9CF",
+  magenta: "#8E8E96",
+  lime: "#34D27B",   // positive/correct (restrained green, not neon)
+  amber: "#E0A23C",
   bronze: "#C98A5E",
 } as const;
 
-export const RADIUS = { lg: 14, xl: 16, "2xl": 20 } as const;
+export const RADIUS = { sm: 10, md: 14, lg: 18, "2xl": 18, xl: 14 } as const;
 
-/** Violet glow used on raised/active surfaces (web shadow-glow). */
-export const GLOW = {
-  shadowColor: COLORS.violet,
-  shadowOpacity: 0.45,
-  shadowRadius: 20,
-  shadowOffset: { width: 0, height: 10 },
-  elevation: 8,
+/** Subtle elevation — soft, not huge. */
+export const SHADOW = {
+  shadowColor: "#000",
+  shadowOpacity: 0.35,
+  shadowRadius: 12,
+  shadowOffset: { width: 0, height: 6 },
+  elevation: 4,
 } as const;
+
+// GLOW kept as a no-op-ish soft shadow alias so any importer still compiles.
+export const GLOW = SHADOW;

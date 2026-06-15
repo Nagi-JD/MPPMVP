@@ -1,5 +1,6 @@
 import React from "react";
 import { View, ActivityIndicator, StyleSheet } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { Slot } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useFonts, Archivo_700Bold, Archivo_800ExtraBold } from "@expo-google-fonts/archivo";
@@ -27,13 +28,15 @@ export default function RootLayout() {
   }
 
   return (
-    <ThemeProvider>
-      <Floodlight>
-        <Slot />
-        {!onboarded && <OnboardingModal onDone={completeOnboarding} />}
-        <StatusBar style="light" />
-      </Floodlight>
-    </ThemeProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ThemeProvider>
+        <Floodlight>
+          <Slot />
+          {!onboarded && <OnboardingModal onDone={completeOnboarding} />}
+          <StatusBar style="light" />
+        </Floodlight>
+      </ThemeProvider>
+    </GestureHandlerRootView>
   );
 }
 
