@@ -15,11 +15,13 @@ function displayValue(market: Market, value: string): string {
 export function MarketRow({
   market,
   sport,
+  accent,
   existing,
   onSubmit,
 }: {
   market: Market;
   sport: Sport;
+  accent: string;
   existing?: Prediction;
   onSubmit: (value: string) => Promise<void>;
 }) {
@@ -66,7 +68,7 @@ export function MarketRow({
     <View style={styles.row}>
       <Animated.View pointerEvents="none" style={[styles.flash, { opacity: flash }]}>
         <View style={styles.flashPill}>
-          <Text style={[styles.flashText, { color: meta.accent }]}>{meta.emoji} {meta.confirm}!</Text>
+          <Text style={[styles.flashText, { color: accent }]}>{meta.emoji} {meta.confirm}!</Text>
         </View>
       </Animated.View>
 
@@ -96,7 +98,7 @@ export function MarketRow({
                 const on = choice === o;
                 return (
                   <Pressable key={o} disabled={locked} onPress={() => setChoice(o)}
-                    style={[styles.chip, { borderColor: on ? COLORS.violet : COLORS.line, backgroundColor: on ? "rgba(139,92,246,0.2)" : "transparent" }]}>
+                    style={[styles.chip, { borderColor: on ? accent : COLORS.line, backgroundColor: on ? accent + "33" : "transparent" }]}>
                     <Text style={{ color: on ? COLORS.white : COLORS.muted, fontFamily: FONTS.bodyMed, fontSize: 12 }}>{o}</Text>
                   </Pressable>
                 );
@@ -141,7 +143,7 @@ export function MarketRow({
               <Text style={[styles.lockedTxt, { color: COLORS.muted }]}>Not predicted</Text>
             )}
             <Pressable disabled={locked || !value || saving} onPress={confirm}
-              style={[styles.cta, { opacity: locked || !value || saving ? 0.4 : 1 }]}>
+              style={[styles.cta, { backgroundColor: accent, opacity: locked || !value || saving ? 0.4 : 1 }]}>
               <Text style={styles.ctaText}>{existing ? "Update" : "Confirm"}</Text>
             </Pressable>
           </View>
@@ -172,6 +174,6 @@ const styles = StyleSheet.create({
   picker: { color: COLORS.white },
   footer: { marginTop: 10, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   lockedTxt: { fontFamily: FONTS.body, fontSize: 12, color: COLORS.violetLight },
-  cta: { backgroundColor: COLORS.violet, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 8 },
+  cta: { borderRadius: 10, paddingHorizontal: 14, paddingVertical: 8 },
   ctaText: { fontFamily: FONTS.displayBold, fontSize: 12, color: "#fff" },
 });

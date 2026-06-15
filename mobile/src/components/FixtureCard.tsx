@@ -3,10 +3,10 @@ import { View, Text, StyleSheet, Animated } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { COLORS, RADIUS } from "@/theme/tokens";
 import { FONTS } from "@/theme/fonts";
-import { SPORTS } from "@/lib/catalog";
 import { timeUntil } from "@/lib/time";
 import { SportLogo } from "@/components/SportLogo";
 import { MarketRow } from "@/components/MarketRow";
+import { getCategoryTheme } from "@/theme/categories";
 import type { FixtureBoard } from "@/lib/data/provider";
 import type { Prediction } from "@/lib/types";
 
@@ -20,7 +20,7 @@ export function FixtureCard({
   onSubmit: (marketId: string, value: string) => Promise<void>;
 }) {
   const { fixture, markets } = board;
-  const meta = SPORTS[fixture.sport];
+  const accent = getCategoryTheme(fixture.leagueId).accent;
   const settled = fixture.status === "settled";
   const countdown = timeUntil(fixture.lockTime);
   const byMarket = (id: string) => predictions.find((p) => p.marketId === id);
@@ -42,11 +42,11 @@ export function FixtureCard({
 
   return (
     <View style={styles.card}>
-      <LinearGradient colors={[meta.accent + "26", "transparent"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.header}>
+      <LinearGradient colors={[accent + "26", "transparent"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.header}>
         <View style={styles.headRow}>
           <View style={styles.scopeWrap}>
             <SportLogo sport={fixture.sport} size={18} />
-            <Text style={[styles.scope, { color: meta.accent }]}>{scopeLabel.toUpperCase()}</Text>
+            <Text style={[styles.scope, { color: accent }]}>{scopeLabel.toUpperCase()}</Text>
           </View>
           {settled ? (
             <Text style={styles.settled}>SETTLED</Text>
@@ -63,7 +63,7 @@ export function FixtureCard({
 
       <View style={styles.markets}>
         {markets.map((m) => (
-          <MarketRow key={m.id} market={m} sport={fixture.sport} existing={byMarket(m.id)} onSubmit={(v) => onSubmit(m.id, v)} />
+          <MarketRow key={m.id} market={m} sport={fixture.sport} accent={accent} existing={byMarket(m.id)} onSubmit={(v) => onSubmit(m.id, v)} />
         ))}
       </View>
     </View>
