@@ -9,8 +9,12 @@ function seedEvents(): GameEvent[] {
   const base = (n: number) => new Date(Date.now() + n * 3600_000).toISOString();
   return [
     { id: "e1", externalId: "f1", category: "football", title: "PSG vs OM", home: "PSG", away: "OM", startTime: base(2), lockTime: base(2), status: "scheduled", result: null },
-    { id: "e2", externalId: "x1", category: "esports", title: "G2 vs FNC", home: "G2", away: "FNC", startTime: base(3), lockTime: base(3), status: "scheduled", result: null },
-    { id: "e3", externalId: "b1", category: "basketball", title: "LAL vs BOS", home: "LAL", away: "BOS", startTime: base(5), lockTime: base(5), status: "scheduled", result: null },
+    { id: "e2", externalId: "x1", category: "esports", title: "G2 vs Fnatic", home: "G2", away: "Fnatic", startTime: base(3), lockTime: base(3), status: "scheduled", result: null },
+    { id: "e3", externalId: "b1", category: "basketball", title: "Lakers vs Celtics", home: "Lakers", away: "Celtics", startTime: base(5), lockTime: base(5), status: "scheduled", result: null },
+    { id: "e4", externalId: "x2", category: "esports", title: "T1 vs Gen.G", home: "T1", away: "Gen.G", startTime: base(8), lockTime: base(8), status: "scheduled", result: null },
+    { id: "e5", externalId: "t1", category: "tennis", title: "Alcaraz vs Sinner", home: "Alcaraz", away: "Sinner", startTime: base(26), lockTime: base(26), status: "scheduled", result: null },
+    // A finished event so the feed shows settled results too.
+    { id: "e6", externalId: "f2", category: "football", title: "Real Madrid vs Barcelona", home: "Real Madrid", away: "Barcelona", startTime: base(-3), lockTime: base(-3), status: "settled", result: "home" },
   ];
 }
 
