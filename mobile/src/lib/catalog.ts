@@ -1,4 +1,5 @@
-import type { MarketInput, MarketKind } from "@/lib/types";
+import type { MarketInput, MarketKind, Sport, RankTier } from "@/lib/types";
+import { COLORS } from "@/theme/tokens";
 
 export interface MarketMeta {
   label: string; short: string; input: MarketInput; difficulty: 1 | 2 | 3;
@@ -34,3 +35,26 @@ export const REWARDS: RewardDef[] = [
   { id: "regular", icon: "📅", name: "Regular", desc: "20+ predictions placed", unlocked: (s) => s.made >= 20 },
   { id: "boss", icon: "🏆", name: "Season Boss", desc: "Win a mini-league", unlocked: () => false },
 ];
+
+/** Per-sport small accents (brand stays violet/lime). Mirrors web SPORTS meta. */
+export interface SportMeta {
+  label: string;
+  emoji: string;
+  accent: string;   // accent color value
+  confirm: string;  // word shown on a confirmed pick
+}
+
+export const SPORTS: Record<Sport, SportMeta> = {
+  basketball: { label: "Basketball", emoji: "🏀", accent: COLORS.amber, confirm: "Swish" },
+  f1: { label: "Formula 1", emoji: "🏎️", accent: COLORS.magenta, confirm: "Lights out" },
+};
+
+/** Tier text color (mirrors web TIER_STYLE). */
+export const TIER_COLOR: Record<RankTier, string> = {
+  Diamond: COLORS.lime,
+  Platinum: COLORS.violetLight,
+  Gold: COLORS.amber,
+  Silver: COLORS.muted,
+  Bronze: COLORS.bronze,
+  Rookie: "rgba(168,159,201,0.6)",
+};
