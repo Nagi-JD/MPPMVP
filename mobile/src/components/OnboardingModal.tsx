@@ -12,8 +12,20 @@ const SUBTITLE: Record<Sport, string> = {
   f1: "Grand Prix · Championship",
 };
 
-export function OnboardingModal({ onDone }: { onDone: (sports: Sport[]) => void }) {
-  const [picked, setPicked] = useState<Sport[]>(["basketball", "f1"]);
+export function OnboardingModal({
+  onDone,
+  initial = ["basketball", "f1"],
+  eyebrow = "Welcome to MPP+",
+  title = "Pick your sports",
+  ctaLabel = "Start predicting",
+}: {
+  onDone: (sports: Sport[]) => void;
+  initial?: Sport[];
+  eyebrow?: string;
+  title?: string;
+  ctaLabel?: string;
+}) {
+  const [picked, setPicked] = useState<Sport[]>(initial);
   const toggle = (s: Sport) =>
     setPicked((p) => (p.includes(s) ? p.filter((x) => x !== s) : [...p, s]));
 
@@ -21,8 +33,8 @@ export function OnboardingModal({ onDone }: { onDone: (sports: Sport[]) => void 
     <Modal transparent animationType="fade" visible>
       <View style={styles.scrim}>
         <View style={styles.card}>
-          <Eyebrow>Welcome to MPP+</Eyebrow>
-          <Text style={styles.title}>Pick your sports</Text>
+          <Eyebrow>{eyebrow}</Eyebrow>
+          <Text style={styles.title}>{title}</Text>
           <Text style={styles.sub}>We'll line up the leagues you care about. Change them anytime.</Text>
 
           <View style={styles.list}>
@@ -45,9 +57,8 @@ export function OnboardingModal({ onDone }: { onDone: (sports: Sport[]) => void 
             })}
           </View>
 
-          <Pressable disabled={picked.length === 0} onPress={() => onDone(picked)}
-            style={[styles.cta, { opacity: picked.length === 0 ? 0.4 : 1 }]}>
-            <Text style={styles.ctaText}>Start predicting</Text>
+          <Pressable onPress={() => onDone(picked)} style={styles.cta}>
+            <Text style={styles.ctaText}>{ctaLabel}</Text>
           </Pressable>
         </View>
       </View>

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { ScrollView, View, Text, StyleSheet } from "react-native";
-import { Eyebrow, SportLogo, RankBadge } from "@/components";
+import { ScrollView, View, Text, StyleSheet, Pressable } from "react-native";
+import { Eyebrow, SportLogo, RankBadge, OnboardingModal } from "@/components";
 import { COLORS } from "@/theme/tokens";
 import { FONTS } from "@/theme/fonts";
 import { getCategoryTheme } from "@/theme/categories";
@@ -9,10 +9,11 @@ import { useSession } from "@/store/useSession";
 import type { League, Profile, SeasonStats } from "@/lib/types";
 
 export default function ProfileScreen() {
-  const { userId, displayName } = useSession();
+  const { userId, displayName, favorites, setFavorites } = useSession();
   const provider = getProvider();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [seasons, setSeasons] = useState<{ league: League; stats: SeasonStats }[]>([]);
+  const [editing, setEditing] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -41,6 +42,10 @@ export default function ProfileScreen() {
         </View>
       </View>
 
+      <Pressable onPress={() => setEditing(true)} style={styles.editBtn}>
+        <Text style={styles.editBtnText}>Modifier mes sports</Text>
+      </Pressable>
+
       <Eyebrow style={styles.section}>Rank by season</Eyebrow>
       {seasons.length === 0 ? (
         <Text style={styles.emptyCard}>Make some predictions to start a seasonal rank.</Text>
@@ -65,6 +70,16 @@ export default function ProfileScreen() {
           })}
         </View>
       )}
+
+      {editing && (
+        <OnboardingModal
+          initial={favorites}
+          eyebrow="Vos sports"
+          title="Modifier mes sports"
+          ctaLabel="Enregistrer"
+          onDone={(sports) => { setFavorites(sports); setEditing(false); }}
+        />
+      )}
     </ScrollView>
   );
 }
@@ -86,6 +101,8 @@ const styles = StyleSheet.create({
   name: { fontFamily: FONTS.display, fontSize: 22, color: COLORS.white },
   total: { fontFamily: FONTS.monoBold, fontSize: 24, color: COLORS.lime },
   totalLabel: { fontFamily: FONTS.mono, fontSize: 10, color: COLORS.muted },
+  editBtn: { marginTop: 16, borderWidth: 1, borderColor: COLORS.violet, borderRadius: 14, paddingVertical: 12, alignItems: "center" },
+  editBtnText: { fontFamily: FONTS.displayBold, fontSize: 14, color: COLORS.violetLight },
   section: { marginTop: 28, marginBottom: 8 },
   emptyCard: { borderWidth: StyleSheet.hairlineWidth, borderColor: COLORS.line, backgroundColor: "rgba(21,17,42,0.6)", borderRadius: 16, paddingVertical: 24, paddingHorizontal: 16, textAlign: "center", fontFamily: FONTS.body, fontSize: 13, color: COLORS.muted },
   card: { borderWidth: StyleSheet.hairlineWidth, borderColor: COLORS.line, backgroundColor: "rgba(21,17,42,0.6)", borderRadius: 20, padding: 16 },
