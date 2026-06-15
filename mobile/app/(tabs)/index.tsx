@@ -1,19 +1,16 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { ScrollView, View, Text, Pressable, StyleSheet, ActivityIndicator } from "react-native";
-import { useSportControls, useSportTheme } from "@/theme/useSportTheme";
-import { getSportTheme, resolveSportId } from "@/theme/sportThemes";
+import { Eyebrow, SportLogo, RankBadge, FixtureCard } from "@/components";
+import { COLORS } from "@/theme/tokens";
 import { FONTS } from "@/theme/fonts";
+import { SPORTS } from "@/lib/catalog";
 import { getProvider } from "@/lib/data/client";
 import { useSession } from "@/store/useSession";
-import { timeUntil } from "@/lib/time";
-import { SportHeader, EventCard, PredictionCard, PredictionButton, ResultCard, RankBadge } from "@/components";
 import type { FixtureBoard } from "@/lib/data/provider";
 import type { League, Prediction, SeasonStats } from "@/lib/types";
 
 export default function HomeScreen() {
-  const t = useSportTheme();
-  const { setSport } = useSportControls();
-  const { userId, favorites } = useSession();
+  const { userId, displayName, favorites } = useSession();
   const provider = getProvider();
 
   const [leagues, setLeagues] = useState<League[]>([]);
@@ -22,10 +19,10 @@ export default function HomeScreen() {
   const [preds, setPreds] = useState<Prediction[]>([]);
   const [stats, setStats] = useState<SeasonStats | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
-    provider.listLeagues().then(setLeagues).catch((e) => setError(String(e)));
+    provider.listLeagues().then(setLeagues).catch(() => setError(true));
   }, [provider]);
 
   const visible = useMemo(
@@ -38,13 +35,9 @@ export default function HomeScreen() {
   }, [visible, activeLeague]);
 
   useEffect(() => {
-    if (activeLeague) setSport(resolveSportId(activeLeague));
-  }, [activeLeague, setSport]);
-
-  useEffect(() => {
     if (!activeLeague) return;
     setLoading(true);
-    setError(null);
+    setError(false);
     (async () => {
       try {
         const [b, p, s] = await Promise.all([
@@ -53,8 +46,8 @@ export default function HomeScreen() {
           provider.seasonStats(userId, activeLeague),
         ]);
         setBoard(b); setPreds(p); setStats(s);
-      } catch (e) {
-        setError(String(e));
+      } catch {
+        setError(true);
       } finally {
         setLoading(false);
       }
@@ -66,104 +59,72 @@ export default function HomeScreen() {
     setPreds(await provider.getPredictions(userId));
   }
 
-  const predFor = (marketId: string) => preds.find((p) => p.marketId === marketId);
+  const firstName = displayName.split(" ")[0];
 
   return (
-    <ScrollView contentContainerStyle={{ paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
-      <SportHeader title="Match Day" subtitle="Call it before the lights go out." />
+    <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <View style={styles.header}>
+        <Eyebrow>Match day</Eyebrow>
+        <Text style={styles.title}>
+          Call it, <Text style={{ color: COLORS.violetLight }}>{firstName}</Text>.
+        </Text>
+      </View>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
         {visible.map((l) => {
+          const meta = SPORTS[l.sport];
           const on = l.id === activeLeague;
-          const st = getSportTheme(resolveSportId(l.id));
           return (
-            <Pressable
-              key={l.id}
-              onPress={() => setActiveLeague(l.id)}
-              style={[styles.chip, { borderColor: on ? st.primary : t.border, backgroundColor: on ? st.primary + "22" : "transparent" }]}
-            >
-              <Text style={{ color: on ? t.text : t.mutedText, fontFamily: FONTS.bodyMed, fontSize: 13 }}>
-                {l.org} {l.season}
-              </Text>
+            <Pressable key={l.id} onPress={() => setActiveLeague(l.id)}
+              style={[styles.chip, { borderColor: on ? meta.accent : COLORS.line, backgroundColor: on ? "rgba(255,255,255,0.05)" : "transparent" }]}>
+              <SportLogo sport={l.sport} size={14} />
+              <Text style={{ color: on ? COLORS.white : COLORS.muted, fontFamily: FONTS.bodyMed, fontSize: 13 }}>{l.org} {l.season}</Text>
             </Pressable>
           );
         })}
       </ScrollView>
 
       {stats && (
-        <View style={[styles.banner, { backgroundColor: t.surface, borderColor: t.border }]}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+        <View style={styles.banner}>
+          <View style={styles.bannerLeft}>
             <RankBadge tier={stats.tier} />
-            <Text style={{ color: t.mutedText, fontFamily: FONTS.mono, fontSize: 12 }}>
-              {stats.correct}/{stats.settled} correct · {Math.round(stats.accuracy * 100)}%
-            </Text>
+            <Text style={styles.bannerStat}>{stats.correct}/{stats.settled} correct · {Math.round(stats.accuracy * 100)}%</Text>
           </View>
           <View style={{ alignItems: "flex-end" }}>
-            <Text style={{ color: t.accent, fontFamily: FONTS.monoBold, fontSize: 18 }}>{stats.points}</Text>
-            <Text style={{ color: t.mutedText, fontFamily: FONTS.mono, fontSize: 10 }}>SEASON PTS</Text>
+            <Text style={styles.points}>{stats.points}</Text>
+            <Text style={styles.pointsLabel}>SEASON PTS</Text>
           </View>
         </View>
       )}
 
       {loading ? (
-        <ActivityIndicator color={t.primary} style={{ marginTop: 40 }} />
+        <ActivityIndicator color={COLORS.violet} style={{ marginTop: 40 }} />
       ) : error ? (
-        <Text style={[styles.empty, { color: t.danger }]}>Couldn't load the board. Is the backend running?</Text>
+        <Text style={[styles.empty, { color: COLORS.magenta }]}>Couldn't load the board. Is the backend running?</Text>
       ) : board.length === 0 ? (
-        <Text style={[styles.empty, { color: t.mutedText }]}>No fixtures on the board yet.</Text>
+        <Text style={styles.empty}>No fixtures on the board yet.</Text>
       ) : (
-        board.map((b) => (
-          <View key={b.fixture.id} style={styles.section}>
-            <EventCard
-              title={b.fixture.title}
-              scopeLabel={b.fixture.scope === "match" ? "Match" : b.fixture.scope === "weekend" ? "Race weekend" : "Season"}
-              countdown={timeUntil(b.fixture.lockTime)}
-              status={b.fixture.status}
-            >
-              {b.markets.map((m) => {
-                const settled = m.status === "settled";
-                const mine = predFor(m.id);
-                if (settled) {
-                  return (
-                    <ResultCard
-                      key={m.id}
-                      marketLabel={m.label}
-                      result={m.result ?? "—"}
-                      correct={mine ? mine.value === m.result : undefined}
-                      points={mine?.pointsAwarded}
-                    />
-                  );
-                }
-                return (
-                  <PredictionCard
-                    key={m.id}
-                    label={m.label}
-                    difficulty={m.difficulty}
-                    lockedLabel={mine ? `Locked: ${mine.value}` : undefined}
-                  >
-                    {(m.options ?? []).map((o) => (
-                      <PredictionButton
-                        key={o}
-                        label={o}
-                        state={mine?.value === o ? "selected" : "idle"}
-                        onPress={() => submit(m.id, o)}
-                      />
-                    ))}
-                  </PredictionCard>
-                );
-              })}
-            </EventCard>
-          </View>
-        ))
+        <View style={styles.list}>
+          {board.map((b) => (
+            <FixtureCard key={b.fixture.id} board={b} predictions={preds} onSubmit={submit} />
+          ))}
+        </View>
       )}
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
+  content: { paddingBottom: 32, paddingTop: 28 },
+  header: { paddingHorizontal: 20 },
+  title: { fontFamily: FONTS.display, fontSize: 30, color: COLORS.white, marginTop: 8, letterSpacing: -0.5 },
   chips: { gap: 8, paddingHorizontal: 20, paddingVertical: 14 },
-  chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 8 },
-  banner: { marginHorizontal: 20, marginBottom: 4, flexDirection: "row", alignItems: "center", justifyContent: "space-between", borderRadius: 16, borderWidth: StyleSheet.hairlineWidth, paddingHorizontal: 16, paddingVertical: 12 },
-  section: { paddingHorizontal: 20, paddingTop: 12 },
-  empty: { textAlign: "center", marginTop: 40, fontFamily: FONTS.body, fontSize: 13 },
+  chip: { flexDirection: "row", alignItems: "center", gap: 6, borderWidth: 1, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 8 },
+  banner: { marginHorizontal: 20, marginBottom: 4, flexDirection: "row", alignItems: "center", justifyContent: "space-between", borderRadius: 16, borderWidth: StyleSheet.hairlineWidth, borderColor: COLORS.line, backgroundColor: "rgba(21,17,42,0.6)", paddingHorizontal: 16, paddingVertical: 12 },
+  bannerLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
+  bannerStat: { color: COLORS.muted, fontFamily: FONTS.mono, fontSize: 12 },
+  points: { color: COLORS.lime, fontFamily: FONTS.monoBold, fontSize: 18 },
+  pointsLabel: { color: COLORS.muted, fontFamily: FONTS.mono, fontSize: 10 },
+  list: { paddingHorizontal: 20, gap: 16, paddingTop: 4 },
+  empty: { textAlign: "center", marginTop: 40, fontFamily: FONTS.body, fontSize: 13, color: COLORS.muted },
 });
