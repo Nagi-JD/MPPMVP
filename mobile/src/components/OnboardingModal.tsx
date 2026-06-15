@@ -1,44 +1,53 @@
 import React, { useState } from "react";
 import { Modal, View, Text, Pressable, StyleSheet } from "react-native";
-import { useSportTheme } from "@/theme/useSportTheme";
+import { COLORS, RADIUS, GLOW } from "@/theme/tokens";
 import { FONTS } from "@/theme/fonts";
+import { SPORTS } from "@/lib/catalog";
+import { SportLogo, Eyebrow } from "@/components";
 import type { Sport } from "@/lib/types";
 
-const SPORT_OPTIONS: { id: Sport; label: string; emoji: string }[] = [
-  { id: "basketball", label: "Basketball", emoji: "🏀" },
-  { id: "f1", label: "Formula 1", emoji: "🏎️" },
-];
+const ALL: Sport[] = ["basketball", "f1"];
+const SUBTITLE: Record<Sport, string> = {
+  basketball: "NBA · EuroLeague · LNB",
+  f1: "Grand Prix · Championship",
+};
 
 export function OnboardingModal({ onDone }: { onDone: (sports: Sport[]) => void }) {
-  const t = useSportTheme();
-  const [picked, setPicked] = useState<Sport[]>([]);
+  const [picked, setPicked] = useState<Sport[]>(["basketball", "f1"]);
   const toggle = (s: Sport) =>
-    setPicked((cur) => (cur.includes(s) ? cur.filter((x) => x !== s) : [...cur, s]));
+    setPicked((p) => (p.includes(s) ? p.filter((x) => x !== s) : [...p, s]));
 
   return (
     <Modal transparent animationType="fade" visible>
       <View style={styles.scrim}>
-        <View style={[styles.card, { backgroundColor: t.surface, borderColor: t.border }]}>
-          <Text style={[styles.eyebrow, { color: t.mutedText }]}>WELCOME TO MPP+</Text>
-          <Text style={[styles.title, { color: t.text }]}>Pick your sports</Text>
-          <Text style={[styles.sub, { color: t.mutedText }]}>We'll tailor your match day board.</Text>
-          <View style={styles.options}>
-            {SPORT_OPTIONS.map((o) => {
-              const on = picked.includes(o.id);
+        <View style={styles.card}>
+          <Eyebrow>Welcome to MPP+</Eyebrow>
+          <Text style={styles.title}>Pick your sports</Text>
+          <Text style={styles.sub}>We'll line up the leagues you care about. Change them anytime.</Text>
+
+          <View style={styles.list}>
+            {ALL.map((s) => {
+              const meta = SPORTS[s];
+              const on = picked.includes(s);
               return (
-                <Pressable
-                  key={o.id}
-                  onPress={() => toggle(o.id)}
-                  style={[styles.opt, { borderColor: on ? t.primary : t.border, backgroundColor: on ? t.primary + "22" : "transparent" }]}
-                >
-                  <Text style={styles.emoji}>{o.emoji}</Text>
-                  <Text style={[styles.optLabel, { color: t.text }]}>{o.label}</Text>
+                <Pressable key={s} onPress={() => toggle(s)}
+                  style={[styles.opt, { borderColor: on ? meta.accent : COLORS.line, backgroundColor: on ? "rgba(255,255,255,0.04)" : "transparent", opacity: on ? 1 : 0.7 }]}>
+                  <SportLogo sport={s} size={28} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.optName}>{meta.label}</Text>
+                    <Text style={[styles.optSub, { color: meta.accent }]}>{SUBTITLE[s]}</Text>
+                  </View>
+                  <View style={[styles.check, { borderColor: on ? COLORS.lime : COLORS.line, backgroundColor: on ? COLORS.lime : "transparent" }]}>
+                    <Text style={{ color: on ? COLORS.ink : "transparent", fontFamily: FONTS.bodyMed, fontSize: 12 }}>✓</Text>
+                  </View>
                 </Pressable>
               );
             })}
           </View>
-          <Pressable onPress={() => onDone(picked)} style={[styles.cta, { backgroundColor: t.primary }]}>
-            <Text style={styles.ctaText}>{picked.length ? "Start predicting" : "Skip for now"}</Text>
+
+          <Pressable disabled={picked.length === 0} onPress={() => onDone(picked)}
+            style={[styles.cta, { opacity: picked.length === 0 ? 0.4 : 1 }]}>
+            <Text style={styles.ctaText}>Start predicting</Text>
           </Pressable>
         </View>
       </View>
@@ -47,15 +56,15 @@ export function OnboardingModal({ onDone }: { onDone: (sports: Sport[]) => void 
 }
 
 const styles = StyleSheet.create({
-  scrim: { flex: 1, backgroundColor: "rgba(0,0,0,0.7)", alignItems: "center", justifyContent: "center", padding: 24 },
-  card: { width: "100%", maxWidth: 420, borderRadius: 24, borderWidth: StyleSheet.hairlineWidth, padding: 22 },
-  eyebrow: { fontFamily: FONTS.mono, fontSize: 11, letterSpacing: 2 },
-  title: { fontFamily: FONTS.display, fontSize: 26, marginTop: 8 },
-  sub: { fontFamily: FONTS.body, fontSize: 13, marginTop: 6 },
-  options: { flexDirection: "row", gap: 12, marginTop: 20 },
-  opt: { flex: 1, borderWidth: 1, borderRadius: 16, paddingVertical: 18, alignItems: "center", gap: 8 },
-  emoji: { fontSize: 28 },
-  optLabel: { fontFamily: FONTS.bodyMed, fontSize: 14 },
-  cta: { marginTop: 22, borderRadius: 14, paddingVertical: 15, alignItems: "center" },
+  scrim: { flex: 1, backgroundColor: "rgba(0,0,0,0.7)", justifyContent: "flex-end", padding: 16 },
+  card: { width: "100%", maxWidth: 448, alignSelf: "center", borderRadius: RADIUS["2xl"], borderWidth: StyleSheet.hairlineWidth, borderColor: COLORS.line, backgroundColor: COLORS.ink800, padding: 22, ...GLOW },
+  title: { fontFamily: FONTS.display, fontSize: 24, color: COLORS.white, marginTop: 8 },
+  sub: { fontFamily: FONTS.body, fontSize: 13, color: COLORS.muted, marginTop: 4 },
+  list: { marginTop: 20, gap: 12 },
+  opt: { flexDirection: "row", alignItems: "center", gap: 12, borderWidth: 1, borderRadius: RADIUS.xl, paddingHorizontal: 16, paddingVertical: 14 },
+  optName: { fontFamily: FONTS.displayBold, fontSize: 15, color: COLORS.white },
+  optSub: { fontFamily: FONTS.body, fontSize: 12, marginTop: 2 },
+  check: { width: 24, height: 24, borderRadius: 12, borderWidth: 1, alignItems: "center", justifyContent: "center" },
+  cta: { marginTop: 24, backgroundColor: COLORS.violet, borderRadius: RADIUS.xl, paddingVertical: 14, alignItems: "center", ...GLOW },
   ctaText: { fontFamily: FONTS.displayBold, fontSize: 15, color: "#fff" },
 });
