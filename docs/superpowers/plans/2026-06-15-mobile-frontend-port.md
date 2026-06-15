@@ -1728,3 +1728,24 @@ git commit -m "chore(mobile): remove legacy App.tsx entry; finalize frontend por
 - **R9 — Profile:** avatar initial tile, displayName, total pts (lime); per-season cards (filter made>0) with SportLogo + org + RankBadge + 3 cells (Points lime / Accuracy accent / Correct white). Commit.
 - **R10 — Rewards:** static badges grid (6 badges with tone colors + "Soon" pill) + seasonal-prizes gradient card + disabled "Premium — coming soon". Commit.
 - **R11 — Cleanup:** delete unused starter components (EventCard, PredictionCard, PredictionButton, LeaderboardRow, LeagueCard, ResultCard, RewardCard, SeasonProgressBar, SportHeader, SportCard) + `theme/sportThemes.ts` + `theme/useSportTheme.tsx`; rewrite `components/index.ts`; full typecheck + tests + runtime smoke. Commit.
+
+---
+
+# REVISION 3 — Per-category theming, transitions, editable favorites
+
+**Decisions:** (1) per-category theme = accents + subtle background tint over the web structure (keep ink/violet base + ticket cards); (2) granularity per LEAGUE/category (NBA, EuroLeague, LNB, F1) using official-logo palettes; (3) "Edit my sports" button on Profile reopening the picker; (4) cross-fade tab transition + animated background color transition when category changes.
+
+**Official-logo palettes (accent / optional accent2 / soft bg tint):**
+- default: violet #8B5CF6 / — / rgba(139,92,246,0.10)
+- nba: #1D428A / #C8102E / rgba(29,66,138,0.14)
+- euroleague: #FF6B00 / — / rgba(255,107,0,0.12)
+- lnb: #0055A4 / #EF4135 / rgba(0,85,164,0.14)
+- f1: #E10600 / — / rgba(225,6,0,0.12)
+resolveCategory(idOrSport): f1/formula→f1, nba→nba, euro→euroleague, lnb→lnb, basketball→nba (sport fallback), else default.
+
+## Tasks
+- **V3-T1 Foundation:** theme/categories.ts (CATEGORY_THEMES, CategoryId, resolveCategory, getCategoryTheme — pure) + theme/ThemeProvider.tsx (context: category, setCategory, Animated tint; useCategory hook).
+- **V3-T2 Shell:** ThemeProvider in root _layout; Floodlight cross-fades tint on category change; (tabs) fade transition.
+- **V3-T3 Accents:** FixtureCard resolves accent from fixture.leagueId, passes to MarketRow.
+- **V3-T4 Screens:** Home + Leaderboard chips use category accent + setCategory on active league; Leagues + Profile accents.
+- **V3-T5 Editable favorites:** generalize OnboardingModal (initial/ctaLabel/title) + "Edit my sports" on Profile → setFavorites.
