@@ -7,6 +7,7 @@ import gamesRouter from "./routes/games.js";
 import eventsRouter from "./routes/events.js";
 import standingsRouter from "./routes/standings.js";
 import streamRouter from "./routes/stream.js";
+import appRouter from "./routes/app.js";
 
 const app = express();
 
@@ -22,6 +23,7 @@ app.use("/v1", streamRouter);
 app.use("/v1", gamesRouter);
 app.use("/v1", eventsRouter);
 app.use("/v1", standingsRouter);
+app.use("/v1", appRouter);
 
 // 404 for unknown routes.
 app.use((req, res) => {
