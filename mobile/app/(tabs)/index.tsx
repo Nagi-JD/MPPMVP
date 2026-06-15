@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { View, FlatList, StyleSheet } from "react-native";
+import { useFocusEffect } from "expo-router";
 import {
   ScreenHeader,
   SportTabs,
@@ -45,9 +46,13 @@ export default function HomeScreen() {
     }
   }, [visible, activeLeague]);
 
-  useEffect(() => {
-    if (activeLeague) setCategory(resolveCategory(activeLeague));
-  }, [activeLeague, setCategory]);
+  // Only the FOCUSED screen drives the global category accent — prevents
+  // background tabs from fighting over it (which made the nav icons flicker).
+  useFocusEffect(
+    useCallback(() => {
+      if (activeLeague) setCategory(resolveCategory(activeLeague));
+    }, [activeLeague, setCategory])
+  );
 
   const reload = useCallback(() => {
     if (!activeLeague) return;

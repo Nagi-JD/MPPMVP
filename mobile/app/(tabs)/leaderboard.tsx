@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { View, Text, ScrollView, StyleSheet } from "react-native";
+import { useFocusEffect } from "expo-router";
 import {
   ScreenHeader,
   SportTabs,
@@ -42,9 +43,12 @@ export default function LeaderboardScreen() {
     }
   }, [visible, active]);
 
-  useEffect(() => {
-    if (active) setCategory(resolveCategory(active));
-  }, [active, setCategory]);
+  // Only update the global category accent while this screen is focused.
+  useFocusEffect(
+    useCallback(() => {
+      if (active) setCategory(resolveCategory(active));
+    }, [active, setCategory])
+  );
 
   const reload = useCallback(() => {
     if (!active) return;
