@@ -13,3 +13,5 @@ export { ResultCard } from "./ResultCard";
 export { RewardCard } from "./RewardCard";
 export { SeasonProgressBar } from "./SeasonProgressBar";
 export { OnboardingModal } from "./OnboardingModal";
+export { MarketRow } from "./MarketRow";
+export { FixtureCard } from "./FixtureCard";
