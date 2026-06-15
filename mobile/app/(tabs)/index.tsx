@@ -1,8 +1,15 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { ScrollView, View, Text, Pressable, StyleSheet, ActivityIndicator } from "react-native";
-import { Eyebrow, SportLogo, RankBadge, FixtureCard } from "@/components";
-import { COLORS } from "@/theme/tokens";
-import { FONTS } from "@/theme/fonts";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { View, FlatList, StyleSheet } from "react-native";
+import {
+  ScreenHeader,
+  SportTabs,
+  MatchCard,
+  PointsSummary,
+  LoadingSkeleton,
+  EmptyState,
+  ErrorState,
+} from "@/components";
+import { COLORS, RADIUS } from "@/theme/tokens";
 import { getCategoryTheme, resolveCategory } from "@/theme/categories";
 import { useCategory } from "@/theme/ThemeProvider";
 import { getProvider } from "@/lib/data/client";
@@ -11,7 +18,7 @@ import type { FixtureBoard } from "@/lib/data/provider";
 import type { League, Prediction, SeasonStats } from "@/lib/types";
 
 export default function HomeScreen() {
-  const { userId, displayName, favorites } = useSession();
+  const { userId, favorites } = useSession();
   const provider = getProvider();
   const { setCategory } = useCategory();
 
@@ -29,18 +36,20 @@ export default function HomeScreen() {
 
   const visible = useMemo(
     () => leagues.filter((l) => favorites.length === 0 || favorites.includes(l.sport)),
-    [leagues, favorites]
+    [leagues, favorites],
   );
 
   useEffect(() => {
-    if (visible.length && !visible.some((l) => l.id === activeLeague)) setActiveLeague(visible[0].id);
+    if (visible.length && !visible.some((l) => l.id === activeLeague)) {
+      setActiveLeague(visible[0].id);
+    }
   }, [visible, activeLeague]);
 
   useEffect(() => {
     if (activeLeague) setCategory(resolveCategory(activeLeague));
   }, [activeLeague, setCategory]);
 
-  useEffect(() => {
+  const reload = useCallback(() => {
     if (!activeLeague) return;
     setLoading(true);
     setError(false);
@@ -51,7 +60,9 @@ export default function HomeScreen() {
           provider.getPredictions(userId),
           provider.seasonStats(userId, activeLeague),
         ]);
-        setBoard(b); setPreds(p); setStats(s);
+        setBoard(b);
+        setPreds(p);
+        setStats(s);
       } catch {
         setError(true);
       } finally {
@@ -60,78 +71,110 @@ export default function HomeScreen() {
     })();
   }, [activeLeague, userId, provider]);
 
-  async function submit(marketId: string, value: string) {
-    await provider.submitPrediction(userId, marketId, value);
-    setPreds(await provider.getPredictions(userId));
-  }
+  useEffect(() => {
+    reload();
+  }, [reload]);
 
-  const firstName = displayName.split(" ")[0];
-  const titleAccent = getCategoryTheme(activeLeague).accent;
+  const submit = useCallback(
+    async (marketId: string, value: string) => {
+      await provider.submitPrediction(userId, marketId, value);
+      setPreds(await provider.getPredictions(userId));
+    },
+    [provider, userId],
+  );
 
-  return (
-    <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-      <View style={styles.header}>
-        <Eyebrow>Match day</Eyebrow>
-        <Text style={styles.title}>
-          Call it, <Text style={{ color: titleAccent }}>{firstName}</Text>.
-        </Text>
-      </View>
+  const renderItem = useCallback(
+    ({ item }: { item: FixtureBoard }) => (
+      <MatchCard board={item} predictions={preds} onSubmit={submit} />
+    ),
+    [preds, submit],
+  );
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
-        {visible.map((l) => {
-          const accent = getCategoryTheme(l.id).accent;
-          const on = l.id === activeLeague;
-          return (
-            <Pressable key={l.id} onPress={() => setActiveLeague(l.id)}
-              style={[styles.chip, { borderColor: on ? accent : COLORS.line, backgroundColor: on ? "rgba(255,255,255,0.05)" : "transparent" }]}>
-              <SportLogo sport={l.sport} size={14} />
-              <Text style={{ color: on ? COLORS.white : COLORS.muted, fontFamily: FONTS.bodyMed, fontSize: 13 }}>{l.org} {l.season}</Text>
-            </Pressable>
-          );
-        })}
-      </ScrollView>
+  const keyExtractor = useCallback((b: FixtureBoard) => b.fixture.id, []);
 
-      {stats && (
-        <View style={styles.banner}>
-          <View style={styles.bannerLeft}>
-            <RankBadge tier={stats.tier} />
-            <Text style={styles.bannerStat}>{stats.correct}/{stats.settled} correct · {Math.round(stats.accuracy * 100)}%</Text>
-          </View>
-          <View style={{ alignItems: "flex-end" }}>
-            <Text style={styles.points}>{stats.points}</Text>
-            <Text style={styles.pointsLabel}>SEASON PTS</Text>
-          </View>
-        </View>
-      )}
+  const accent = getCategoryTheme(activeLeague).accent;
+  const active = visible.find((l) => l.id === activeLeague);
+  const subtitle = active ? `${active.org} · ${active.season}` : undefined;
 
-      {loading ? (
-        <ActivityIndicator color={COLORS.violet} style={{ marginTop: 40 }} />
-      ) : error ? (
-        <Text style={[styles.empty, { color: COLORS.magenta }]}>Couldn't load the board. Is the backend running?</Text>
-      ) : board.length === 0 ? (
-        <Text style={styles.empty}>No fixtures on the board yet.</Text>
-      ) : (
-        <View style={styles.list}>
-          {board.map((b) => (
-            <FixtureCard key={b.fixture.id} board={b} predictions={preds} onSubmit={submit} />
+  const header = (
+    <View>
+      <ScreenHeader
+        title="Matchday"
+        subtitle={subtitle}
+        right={
+          stats ? (
+            <PointsSummary points={stats.points} accuracy={stats.accuracy * 100} accent={accent} />
+          ) : undefined
+        }
+      />
+      <SportTabs
+        tabs={visible.map((l) => ({
+          id: l.id,
+          label: l.org,
+          accent: getCategoryTheme(l.id).accent,
+        }))}
+        activeId={activeLeague}
+        onChange={setActiveLeague}
+      />
+      <View style={styles.headerSpacer} />
+    </View>
+  );
+
+  // Loading: header + 3 skeleton cards (no spinner).
+  if (loading) {
+    return (
+      <View style={styles.root}>
+        {header}
+        <View style={styles.skeletonList}>
+          {[0, 1, 2].map((i) => (
+            <View key={i} style={styles.skeletonCard}>
+              <LoadingSkeleton height={120} radius={RADIUS.lg} />
+            </View>
           ))}
         </View>
-      )}
-    </ScrollView>
+      </View>
+    );
+  }
+
+  // Error: header + retryable error state.
+  if (error) {
+    return (
+      <View style={styles.root}>
+        {header}
+        <ErrorState
+          message="Impossible de charger les matchs. Backend lancé ?"
+          onRetry={reload}
+        />
+      </View>
+    );
+  }
+
+  return (
+    <FlatList
+      style={styles.root}
+      data={board}
+      renderItem={renderItem}
+      keyExtractor={keyExtractor}
+      ListHeaderComponent={header}
+      ItemSeparatorComponent={Spacer}
+      ListEmptyComponent={
+        <EmptyState title="Aucun match" message="Rien à pronostiquer pour l’instant." />
+      }
+      contentContainerStyle={styles.content}
+      showsVerticalScrollIndicator={false}
+    />
   );
 }
 
+function Spacer() {
+  return <View style={styles.separator} />;
+}
+
 const styles = StyleSheet.create({
-  content: { paddingBottom: 32, paddingTop: 28 },
-  header: { paddingHorizontal: 20 },
-  title: { fontFamily: FONTS.display, fontSize: 30, color: COLORS.white, marginTop: 8, letterSpacing: -0.5 },
-  chips: { gap: 8, paddingHorizontal: 20, paddingVertical: 14 },
-  chip: { flexDirection: "row", alignItems: "center", gap: 6, borderWidth: 1, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 8 },
-  banner: { marginHorizontal: 20, marginBottom: 4, flexDirection: "row", alignItems: "center", justifyContent: "space-between", borderRadius: 16, borderWidth: StyleSheet.hairlineWidth, borderColor: COLORS.line, backgroundColor: "rgba(21,17,42,0.6)", paddingHorizontal: 16, paddingVertical: 12 },
-  bannerLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
-  bannerStat: { color: COLORS.muted, fontFamily: FONTS.mono, fontSize: 12 },
-  points: { color: COLORS.lime, fontFamily: FONTS.monoBold, fontSize: 18 },
-  pointsLabel: { color: COLORS.muted, fontFamily: FONTS.mono, fontSize: 10 },
-  list: { paddingHorizontal: 20, gap: 16, paddingTop: 4 },
-  empty: { textAlign: "center", marginTop: 40, fontFamily: FONTS.body, fontSize: 13, color: COLORS.muted },
+  root: { flex: 1, backgroundColor: "transparent" },
+  content: { paddingHorizontal: 16, paddingBottom: 32 },
+  headerSpacer: { height: 14 },
+  separator: { height: 14 },
+  skeletonList: { paddingHorizontal: 16, gap: 14 },
+  skeletonCard: { borderRadius: RADIUS.lg, overflow: "hidden" },
 });
