@@ -22,6 +22,7 @@ export default function TabsLayout() {
         tabBarStyle: { backgroundColor: COLORS.ink800, borderTopColor: COLORS.line, borderTopWidth: 1 },
         tabBarLabelStyle: { fontFamily: FONTS.bodyMed, fontSize: 11 },
         sceneStyle: { backgroundColor: "transparent" },
+        animation: "fade",
       }}
     >
       {TABS.map((tab) => (

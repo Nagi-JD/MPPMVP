@@ -8,6 +8,7 @@ import { JetBrainsMono_500Medium, JetBrainsMono_700Bold } from "@expo-google-fon
 import { Floodlight, OnboardingModal } from "@/components";
 import { useSession } from "@/store/useSession";
 import { COLORS } from "@/theme/tokens";
+import { ThemeProvider } from "@/theme/ThemeProvider";
 
 export default function RootLayout() {
   const [loaded] = useFonts({
@@ -26,11 +27,13 @@ export default function RootLayout() {
   }
 
   return (
-    <Floodlight>
-      <Slot />
-      {!onboarded && <OnboardingModal onDone={completeOnboarding} />}
-      <StatusBar style="light" />
-    </Floodlight>
+    <ThemeProvider>
+      <Floodlight>
+        <Slot />
+        {!onboarded && <OnboardingModal onDone={completeOnboarding} />}
+        <StatusBar style="light" />
+      </Floodlight>
+    </ThemeProvider>
   );
 }
 

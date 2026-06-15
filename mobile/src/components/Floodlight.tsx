@@ -1,27 +1,25 @@
 import React from "react";
-import { View, StyleSheet } from "react-native";
+import { View, StyleSheet, Animated } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { COLORS } from "@/theme/tokens";
+import { useCategory } from "@/theme/ThemeProvider";
 
 /**
- * Arena floodlight wash over the ink background. The web uses two radial
- * glows (violet top-center, magenta top-right); we approximate with two
- * stacked linear gradients fading down into the ink.
+ * Arena background: ink base + a neutral top floodlight glow + a per-category
+ * tint overlay that cross-fades smoothly when the active category changes.
  */
 export function Floodlight({ children }: { children: React.ReactNode }) {
+  const { animatedTint } = useCategory();
   return (
     <View style={styles.root}>
+      {/* neutral floodlight depth (brand) */}
       <LinearGradient
-        colors={["rgba(139,92,246,0.22)", "transparent"]}
+        colors={["rgba(139,92,246,0.16)", "transparent"]}
         locations={[0, 0.6]}
         style={StyleSheet.absoluteFill}
       />
-      <LinearGradient
-        colors={["rgba(232,121,249,0.12)", "transparent"]}
-        start={{ x: 1, y: 0 }}
-        end={{ x: 0.2, y: 0.55 }}
-        style={StyleSheet.absoluteFill}
-      />
+      {/* per-category tint wash (animated) */}
+      <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: animatedTint }]} />
       {children}
     </View>
   );
