@@ -1,40 +1,51 @@
 import React from "react";
-import { Text } from "react-native";
 import { Tabs } from "expo-router";
+import { Target, Trophy, LayoutGrid, Award, User } from "lucide-react-native";
+import type { LucideIcon } from "lucide-react-native";
 import { COLORS } from "@/theme/tokens";
 import { FONTS } from "@/theme/fonts";
+import { useCategory } from "@/theme/ThemeProvider";
+import { hapticSelection } from "@/components";
 
-const TABS: { name: string; title: string; icon: string }[] = [
-  { name: "index", title: "Predict", icon: "◎" },
-  { name: "leaderboard", title: "Ranking", icon: "▦" },
-  { name: "leagues", title: "Leagues", icon: "⬡" },
-  { name: "rewards", title: "Rewards", icon: "✦" },
-  { name: "profile", title: "You", icon: "◆" },
+const TABS: { name: string; title: string; Icon: LucideIcon }[] = [
+  { name: "index", title: "Prédire", Icon: Target },
+  { name: "leaderboard", title: "Classement", Icon: Trophy },
+  { name: "leagues", title: "Leagues", Icon: LayoutGrid },
+  { name: "rewards", title: "Rewards", Icon: Award },
+  { name: "profile", title: "Profil", Icon: User },
 ];
 
 export default function TabsLayout() {
+  const { theme } = useCategory();
+  const accent = theme.accent;
+
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: COLORS.white,
-        tabBarInactiveTintColor: COLORS.muted,
-        tabBarStyle: { backgroundColor: COLORS.ink800, borderTopColor: COLORS.line, borderTopWidth: 1 },
+        tabBarActiveTintColor: accent,
+        tabBarInactiveTintColor: COLORS.textMuted,
+        tabBarStyle: {
+          backgroundColor: COLORS.surface,
+          borderTopColor: COLORS.border,
+          borderTopWidth: 1,
+        },
         tabBarLabelStyle: { fontFamily: FONTS.bodyMed, fontSize: 11 },
         sceneStyle: { backgroundColor: "transparent" },
         animation: "fade",
       }}
     >
-      {TABS.map((tab) => (
+      {TABS.map(({ name, title, Icon }) => (
         <Tabs.Screen
-          key={tab.name}
-          name={tab.name}
+          key={name}
+          name={name}
           options={{
-            title: tab.title,
+            title,
             tabBarIcon: ({ focused }) => (
-              <Text style={{ color: focused ? COLORS.lime : COLORS.muted, fontSize: 16 }}>{tab.icon}</Text>
+              <Icon color={focused ? accent : COLORS.textMuted} size={22} />
             ),
           }}
+          listeners={{ tabPress: () => hapticSelection() }}
         />
       ))}
     </Tabs>
