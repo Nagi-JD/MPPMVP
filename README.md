@@ -89,13 +89,15 @@ npm run dev                  # http://localhost:3000
 
 ## Roadmap
 
-- [ ] Project scaffold (Next.js + Supabase client + PWA manifest)
-- [ ] Database schema & RLS policies
-- [ ] Auth + onboarding (pick favorite categories)
-- [ ] Event feed + prediction flow (server-enforced lock time)
-- [ ] Category adapters: football → esports → other sports
-- [ ] Settlement job (idempotent scoring + streaks)
-- [ ] Global & group leaderboards (Realtime)
+- [x] Project scaffold (Next.js + Tailwind + Vitest + PWA manifest)
+- [x] Event feed + prediction flow (one pick per event)
+- [x] Pure, tested scoring + streak logic
+- [x] Pluggable data layer (mock provider; Supabase provider next)
+- [x] Category adapters: football, esports, other sports
+- [x] Global leaderboard + private groups (mock provider)
+- [x] Database schema & RLS policies (`supabase/schema.sql`)
+- [ ] Supabase provider + Auth + onboarding (pick favorite categories)
+- [ ] Settlement cron job wired to Supabase + Realtime
 - [ ] PWA polish + Android (Capacitor) packaging
 
 ## Contributing
