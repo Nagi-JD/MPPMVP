@@ -1,6 +1,8 @@
 import React from "react";
 import { Pressable, Text, StyleSheet, type ViewStyle } from "react-native";
 import { useSportTheme } from "@/theme/useSportTheme";
+import { FONTS } from "@/theme/fonts";
+import { glow } from "@/theme/shadow";
 import type { PredictionState } from "@/types";
 
 export function PredictionButton({
@@ -16,22 +18,26 @@ export function PredictionButton({
 }) {
   const t = useSportTheme(sportId);
 
-  const styleFor = (): { bg: string; border: string; fg: string } => {
+  const look = (): { bg: string; border: string; fg: string; glowed: boolean } => {
     switch (state) {
       case "selected":
-        return { bg: t.primary, border: t.primary, fg: t.text };
+        return { bg: t.primary, border: t.primary, fg: "#fff", glowed: true };
       case "correct":
-        return { bg: t.success, border: t.success, fg: "#06210F" };
+        return { bg: t.success, border: t.success, fg: "#06210F", glowed: true };
       case "wrong":
-        return { bg: "transparent", border: t.danger, fg: t.danger };
+        return { bg: "transparent", border: t.danger, fg: t.danger, glowed: false };
       case "disabled":
-        return { bg: "transparent", border: t.border, fg: t.mutedText };
+        return { bg: "transparent", border: t.border, fg: t.mutedText, glowed: false };
       default:
-        return { bg: t.surfaceAlt, border: t.border, fg: t.text };
+        return { bg: t.surfaceAlt, border: t.border, fg: t.text, glowed: false };
     }
   };
-  const s = styleFor();
-  const containerStyle: ViewStyle = { backgroundColor: s.bg, borderColor: s.border };
+  const s = look();
+  const containerStyle: ViewStyle = {
+    backgroundColor: s.bg,
+    borderColor: s.border,
+    ...(s.glowed ? glow(s.border, 0.5) : null),
+  };
 
   return (
     <Pressable
@@ -45,7 +51,7 @@ export function PredictionButton({
 }
 
 const styles = StyleSheet.create({
-  btn: { flex: 1, borderWidth: 1, borderRadius: 12, paddingVertical: 11, paddingHorizontal: 8, alignItems: "center" },
-  label: { fontSize: 13, fontWeight: "700" },
+  btn: { flex: 1, borderWidth: 1, borderRadius: 12, paddingVertical: 12, paddingHorizontal: 8, alignItems: "center" },
+  label: { fontFamily: FONTS.bodyMed, fontSize: 13 },
   strike: { textDecorationLine: "line-through" },
 });

@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Pressable, StyleSheet, type ViewStyle, type StyleProp } from "react-native";
 import { useSportTheme } from "@/theme/useSportTheme";
+import { glow } from "@/theme/shadow";
 
 /** Base themed surface used by every other card. */
 export function SportCard({
@@ -21,6 +22,7 @@ export function SportCard({
     backgroundColor: t.surface,
     borderColor: highlighted ? t.primary : t.border,
     borderWidth: highlighted ? 1.5 : StyleSheet.hairlineWidth,
+    ...(highlighted ? glow(t.primary, 0.4) : null),
   };
   if (onPress) {
     return (
@@ -36,5 +38,5 @@ export function SportCard({
 }
 
 const styles = StyleSheet.create({
-  card: { borderRadius: 18, padding: 16 },
+  card: { borderRadius: 20, padding: 16 },
 });

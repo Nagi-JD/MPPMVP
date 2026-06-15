@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { useSportTheme } from "@/theme/useSportTheme";
+import { FONTS } from "@/theme/fonts";
 
 /** A single prediction market: label, difficulty, the inputs (children), and lock state. */
 export function PredictionCard({
@@ -33,10 +34,10 @@ export function PredictionCard({
 }
 
 const styles = StyleSheet.create({
-  wrap: { borderRadius: 14, borderWidth: StyleSheet.hairlineWidth, padding: 12 },
+  wrap: { borderRadius: 16, borderWidth: StyleSheet.hairlineWidth, padding: 12 },
   head: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 10 },
-  label: { fontSize: 14, fontWeight: "700" },
-  diff: { fontSize: 11, letterSpacing: 1 },
+  label: { fontFamily: FONTS.bodyMed, fontSize: 14 },
+  diff: { fontFamily: FONTS.mono, fontSize: 11, letterSpacing: 1 },
   row: { flexDirection: "row", gap: 8 },
-  locked: { fontSize: 11, marginTop: 8 },
+  locked: { fontFamily: FONTS.mono, fontSize: 11, marginTop: 8 },
 });

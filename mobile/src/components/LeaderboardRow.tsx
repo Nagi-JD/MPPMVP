@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { useSportTheme } from "@/theme/useSportTheme";
+import { FONTS } from "@/theme/fonts";
 import { RankBadge } from "./RankBadge";
 import type { RankTier } from "@/types";
 
@@ -33,7 +34,7 @@ export function LeaderboardRow({
       <Text style={[styles.rank, { color: medal }]}>{String(rank).padStart(2, "0")}</Text>
       <Text style={[styles.name, { color: t.text }]} numberOfLines={1}>
         {name}
-        {me ? <Text style={{ color: t.primary }}>  you</Text> : null}
+        {me ? <Text style={{ color: t.primary, fontFamily: FONTS.mono }}>  you</Text> : null}
       </Text>
       <RankBadge tier={tier} sportId={sportId} />
       {accuracy != null ? (
@@ -45,9 +46,9 @@ export function LeaderboardRow({
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 12, paddingHorizontal: 14, borderBottomWidth: StyleSheet.hairlineWidth },
-  rank: { width: 26, fontSize: 13, fontWeight: "800", fontVariant: ["tabular-nums"] },
-  name: { flex: 1, fontSize: 14, fontWeight: "700" },
-  acc: { width: 42, textAlign: "right", fontSize: 12, fontVariant: ["tabular-nums"] },
-  pts: { width: 48, textAlign: "right", fontSize: 14, fontWeight: "800", fontVariant: ["tabular-nums"] },
+  row: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 13, paddingHorizontal: 14, borderBottomWidth: StyleSheet.hairlineWidth },
+  rank: { width: 26, fontFamily: FONTS.monoBold, fontSize: 13 },
+  name: { flex: 1, fontFamily: FONTS.bodyMed, fontSize: 14 },
+  acc: { width: 42, textAlign: "right", fontFamily: FONTS.mono, fontSize: 12 },
+  pts: { width: 48, textAlign: "right", fontFamily: FONTS.monoBold, fontSize: 15 },
 });

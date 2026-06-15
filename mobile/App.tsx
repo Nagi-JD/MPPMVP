@@ -1,8 +1,13 @@
 import React, { useState } from "react";
-import { ScrollView, View, Text, Pressable, StyleSheet } from "react-native";
+import { ScrollView, View, Text, Pressable, StyleSheet, ActivityIndicator } from "react-native";
 import { StatusBar } from "expo-status-bar";
+import { LinearGradient } from "expo-linear-gradient";
+import { useFonts, Archivo_700Bold, Archivo_800ExtraBold } from "@expo-google-fonts/archivo";
+import { Inter_400Regular, Inter_600SemiBold } from "@expo-google-fonts/inter";
+import { JetBrainsMono_500Medium, JetBrainsMono_700Bold } from "@expo-google-fonts/jetbrains-mono";
 import { SportThemeProvider, useSportTheme } from "@/theme/useSportTheme";
 import { SPORT_THEMES, type SportId } from "@/theme/sportThemes";
+import { FONTS } from "@/theme/fonts";
 import {
   SportHeader,
   LeagueCard,
@@ -24,6 +29,23 @@ const SPORTS: { id: SportId; label: string }[] = [
 
 export default function App() {
   const [sport, setSport] = useState<SportId>("f1");
+  const [loaded] = useFonts({
+    Archivo_700Bold,
+    Archivo_800ExtraBold,
+    Inter_400Regular,
+    Inter_600SemiBold,
+    JetBrainsMono_500Medium,
+    JetBrainsMono_700Bold,
+  });
+
+  if (!loaded) {
+    return (
+      <View style={[styles.loading, { backgroundColor: SPORT_THEMES.f1.background }]}>
+        <ActivityIndicator color={SPORT_THEMES.f1.primary} />
+      </View>
+    );
+  }
+
   return (
     <SportThemeProvider sport={sport}>
       <Screen sport={sport} onSwitch={setSport} />
@@ -34,17 +56,26 @@ export default function App() {
 
 function Screen({ sport, onSwitch }: { sport: SportId; onSwitch: (s: SportId) => void }) {
   const t = useSportTheme();
-  // demo pick states for the prediction example
   const [pick, setPick] = useState<string>("");
 
   return (
     <View style={{ flex: 1, backgroundColor: t.background }}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 48 }}>
-        <View style={{ height: 44 }} />
-        <SportHeader title="Match Day" subtitle="Call it before the lights go out" />
+      {/* full-screen floodlight wash in the active sport's colour */}
+      <LinearGradient
+        colors={[t.primary + "2E", t.background, t.background]}
+        locations={[0, 0.45, 1]}
+        style={StyleSheet.absoluteFill}
+      />
+      <ScrollView contentContainerStyle={{ paddingBottom: 56 }} showsVerticalScrollIndicator={false}>
+        <View style={{ height: 56 }} />
+        <SportHeader title="Match Day" subtitle="Call it before the lights go out." />
 
-        {/* sport switcher (demonstrates full re-theme per page) */}
-        <View style={styles.switcher}>
+        {/* sport switcher — re-themes the whole screen */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.switcher}
+        >
           {SPORTS.map((s) => {
             const on = s.id === sport;
             const st = SPORT_THEMES[s.id];
@@ -54,14 +85,16 @@ function Screen({ sport, onSwitch }: { sport: SportId; onSwitch: (s: SportId) =>
                 onPress={() => onSwitch(s.id)}
                 style={[
                   styles.chip,
-                  { borderColor: on ? st.primary : t.border, backgroundColor: on ? st.primary : "transparent" },
+                  { borderColor: on ? st.primary : t.border, backgroundColor: on ? st.primary + "22" : "transparent" },
                 ]}
               >
-                <Text style={{ color: on ? "#fff" : t.mutedText, fontWeight: "700", fontSize: 13 }}>{s.label}</Text>
+                <Text style={{ color: on ? t.text : t.mutedText, fontFamily: FONTS.bodyMed, fontSize: 13 }}>
+                  {s.label}
+                </Text>
               </Pressable>
             );
           })}
-        </View>
+        </ScrollView>
 
         <View style={styles.section}>
           <LeagueCard org={t.name} season={2026} sportId={sport} active />
@@ -78,7 +111,11 @@ function Screen({ sport, onSwitch }: { sport: SportId; onSwitch: (s: SportId) =>
             countdown="2h 10m"
             status="scheduled"
           >
-            <PredictionCard label={sport === "f1" ? "Race winner" : "Match winner"} difficulty={2} lockedLabel={pick ? `Locked: ${pick}` : undefined}>
+            <PredictionCard
+              label={sport === "f1" ? "Race winner" : "Match winner"}
+              difficulty={2}
+              lockedLabel={pick ? `Locked: ${pick}` : undefined}
+            >
               {(sport === "f1" ? ["Verstappen", "Norris", "Leclerc"] : ["Lakers", "Celtics"]).map((o) => (
                 <PredictionButton key={o} label={o} state={pick === o ? "selected" : "idle"} onPress={() => setPick(o)} />
               ))}
@@ -96,10 +133,12 @@ function Screen({ sport, onSwitch }: { sport: SportId; onSwitch: (s: SportId) =>
         </View>
 
         <SectionTitle text="Season ranking" />
-        <View style={[styles.board, { backgroundColor: t.surface, borderColor: t.border }]}>
-          <LeaderboardRow rank={1} name="Maya" points={134} tier="Diamond" accuracy={0.82} />
-          <LeaderboardRow rank={2} name="You" points={119} tier="Platinum" accuracy={0.68} me />
-          <LeaderboardRow rank={3} name="Diego" points={97} tier="Gold" accuracy={0.55} />
+        <View style={styles.section}>
+          <View style={[styles.board, { backgroundColor: t.surface, borderColor: t.border }]}>
+            <LeaderboardRow rank={1} name="Maya" points={134} tier="Diamond" accuracy={0.82} />
+            <LeaderboardRow rank={2} name="You" points={119} tier="Platinum" accuracy={0.68} me />
+            <LeaderboardRow rank={3} name="Diego" points={97} tier="Gold" accuracy={0.55} />
+          </View>
         </View>
 
         <SectionTitle text="Rewards" />
@@ -118,10 +157,11 @@ function SectionTitle({ text }: { text: string }) {
 }
 
 const styles = StyleSheet.create({
-  switcher: { flexDirection: "row", gap: 8, paddingHorizontal: 16, paddingVertical: 14 },
-  chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 7 },
-  section: { paddingHorizontal: 16, paddingTop: 12 },
-  sectionTitle: { fontSize: 11, fontWeight: "800", letterSpacing: 2, paddingHorizontal: 16, paddingTop: 22, paddingBottom: 4 },
-  board: { marginHorizontal: 16, borderRadius: 18, borderWidth: StyleSheet.hairlineWidth, overflow: "hidden" },
+  loading: { flex: 1, alignItems: "center", justifyContent: "center" },
+  switcher: { gap: 8, paddingHorizontal: 20, paddingVertical: 16 },
+  chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 16, paddingVertical: 8 },
+  section: { paddingHorizontal: 20, paddingTop: 12 },
+  sectionTitle: { fontFamily: FONTS.monoBold, fontSize: 11, letterSpacing: 2, paddingHorizontal: 20, paddingTop: 24, paddingBottom: 2 },
+  board: { borderRadius: 20, borderWidth: StyleSheet.hairlineWidth, overflow: "hidden" },
   rewards: { flexDirection: "row", gap: 12 },
 });
