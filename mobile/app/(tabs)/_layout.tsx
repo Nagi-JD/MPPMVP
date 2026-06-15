@@ -21,6 +21,7 @@ export default function TabsLayout() {
         tabBarInactiveTintColor: COLORS.muted,
         tabBarStyle: { backgroundColor: COLORS.ink800, borderTopColor: COLORS.line, borderTopWidth: 1 },
         tabBarLabelStyle: { fontFamily: FONTS.bodyMed, fontSize: 11 },
+        sceneStyle: { backgroundColor: "transparent" },
       }}
     >
       {TABS.map((tab) => (
