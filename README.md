@@ -21,32 +21,41 @@ outcomes and earn virtual points. It is a social game, not a betting platform: t
 is **no real-money wagering** in the MVP. The product is designed phone-first and can
 be packaged as a native Android app without a rewrite.
 
-The headline goal of this MVP is breadth of **categories** — football/soccer, esports
-(LoL, CS2, Dota, Valorant), and other traditional sports — backed by a pluggable data
-layer so new categories are added with a single adapter.
+The MVP launches with real leagues — **NBA, EuroLeague, LNB France (basketball)** and
+**Formula 1** — each with sport-specific prediction markets, its own colour and validation
+animation, and a **per-season ranking** (NBA 2026, F1 2026, …). Rank rewards accuracy ×
+volume × difficulty. A **Rewards** section (badges, seasonal prizes, premium) is scaffolded.
 
-> **Status:** 🟡 MVP in design / early build. See the [design spec](./docs/specs/2026-06-15-mpp-plus-design.md).
+> **Status:** 🟢 Playable web prototype (mock data). Production target — React Native/Expo
+> + NestJS/FastAPI + Postgres/Redis — is documented in
+> [docs/PRODUCTION-ARCHITECTURE.md](./docs/PRODUCTION-ARCHITECTURE.md).
 
 ## Features (MVP scope)
 
-- 🔮 **Predictions** — pick outcomes for upcoming events before they lock.
-- 🏆 **Leaderboards** — global ranking plus private-league (friends) rankings, updated live.
-- 👥 **Private groups** — create or join a league via invite code.
-- 🔥 **Streaks & profiles** — total points, win rate, current/best streak.
-- ⚙️ **Automated settlement** — results are fetched and points awarded automatically.
-- 📱 **Installable PWA** — app-like experience on phone and desktop.
+- 🏀🏎️ **Sport-specific markets** — Basketball: match winner, exact score, top scorer, season
+  champion. F1: qualifying/sprint/race podium, fastest lap, top speed, best sectors, drivers'
+  & constructors' champion.
+- 🎬 **Onboarding** — pick favourite sports in a popup; the dashboard adapts.
+- 🏆 **Seasonal ranking** — a separate leaderboard per league/season, rank tier from accuracy
+  × volume × difficulty.
+- 👥 **Private mini-leagues** — create or join with an invite code.
+- 🎨 **Per-sport identity** — distinct colour + validation animation (basketball bounce, F1
+  speed-sweep) and original sport marks.
+- 🏅 **Rewards (preview)** — badges, seasonal prizes, premium — scaffolded for later.
+- 📱 **Installable PWA** — app-like experience; native app is the production target.
 
-**Deferred (post-MVP):** real-money / crypto wagering, chat & comments, push
-notifications, native iOS. The data model leaves room for a future wallet/ledger.
+**Deferred:** real-money wagering (never — this is a social game), chat, push, live rewards.
 
 ## Tech Stack
 
-| Layer | Choice | Why |
-|-------|--------|-----|
-| Frontend | **Next.js (App Router)** + TypeScript | Mobile-first PWA, fast iteration, Android-wrappable via Capacitor |
-| Backend | **Supabase** (Postgres, Auth, Realtime, RLS) | Auth + live leaderboards + secure row policies with minimal backend code |
-| Jobs | Supabase Edge Functions (cron) | Fixture sync + idempotent settlement |
-| Data | football-data.org · PandaScore · TheSportsDB | Free-tier event/result feeds, one adapter per category |
+**Prototype (this repo):** Next.js (App Router) + TypeScript + Tailwind, Zustand, Vitest,
+PWA. Data behind a `DataProvider` interface with an in-memory mock provider (runs with zero
+setup).
+
+**Production target:** React Native/Expo (gluestack-ui) · NestJS or FastAPI · PostgreSQL ·
+Redis · cron workers. Sport feeds: OpenF1 / Jolpica-F1 / FastF1, nba_api / balldontlie,
+euroleague_api, API-SPORTS / Highlightly. See
+[docs/PRODUCTION-ARCHITECTURE.md](./docs/PRODUCTION-ARCHITECTURE.md).
 
 ## Architecture
 

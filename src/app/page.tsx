@@ -2,103 +2,114 @@
 import { useEffect, useMemo, useState } from "react";
 import { getProvider } from "@/lib/data/client";
 import { useSession } from "@/store/useSession";
-import { EventCard } from "@/components/EventCard";
-import { CATEGORY_THEME } from "@/lib/categories";
-import type { CategorySlug, GameEvent, Outcome, Prediction } from "@/lib/types";
-
-type Filter = "all" | CategorySlug;
+import { OnboardingModal } from "@/components/OnboardingModal";
+import { FixtureCard } from "@/components/FixtureCard";
+import { RankBadge } from "@/components/RankBadge";
+import { SportLogo } from "@/components/SportLogo";
+import { SPORTS } from "@/lib/catalog";
+import type { FixtureBoard } from "@/lib/data/provider";
+import type { League, Prediction, SeasonStats } from "@/lib/types";
 
 export default function Home() {
-  const { userId, displayName } = useSession();
-  const [events, setEvents] = useState<GameEvent[]>([]);
+  const { userId, displayName, favorites, onboarded, completeOnboarding } = useSession();
+  const [leagues, setLeagues] = useState<League[]>([]);
+  const [activeLeague, setActiveLeague] = useState<string>("");
+  const [board, setBoard] = useState<FixtureBoard[]>([]);
   const [preds, setPreds] = useState<Prediction[]>([]);
-  const [filter, setFilter] = useState<Filter>("all");
+  const [stats, setStats] = useState<SeasonStats | null>(null);
   const provider = getProvider();
 
   useEffect(() => {
-    (async () => {
-      setEvents(await provider.listEvents());
-      setPreds(await provider.getPredictions(userId));
-    })();
-  }, [userId, provider]);
+    provider.listLeagues().then(setLeagues);
+  }, [provider]);
 
-  async function submit(eventId: string, choice: Outcome) {
-    await provider.submitPrediction(userId, eventId, choice);
+  // Leagues filtered to the player's favorite sports (all when none chosen yet).
+  const visible = useMemo(
+    () => leagues.filter((l) => favorites.length === 0 || favorites.includes(l.sport)),
+    [leagues, favorites]
+  );
+
+  useEffect(() => {
+    if (visible.length && !visible.some((l) => l.id === activeLeague)) setActiveLeague(visible[0].id);
+  }, [visible, activeLeague]);
+
+  async function refresh() {
+    if (!activeLeague) return;
+    setBoard(await provider.getBoard(activeLeague));
     setPreds(await provider.getPredictions(userId));
+    setStats(await provider.seasonStats(userId, activeLeague));
+  }
+  useEffect(() => {
+    refresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeLeague, userId]);
+
+  async function submit(marketId: string, value: string) {
+    await provider.submitPrediction(userId, marketId, value);
+    await refresh();
   }
 
-  const present = useMemo(() => [...new Set(events.map((e) => e.category))] as CategorySlug[], [events]);
-  const shown = events.filter((e) => filter === "all" || e.category === filter);
-  const openCount = events.filter((e) => e.status === "scheduled").length;
+  const league = visible.find((l) => l.id === activeLeague);
 
   return (
     <div>
-      {/* hero — the floodlight thesis */}
-      <header className="px-5 pb-2 pt-7">
-        <p className="eyebrow">Match day</p>
-        <h1 className="mt-2 font-display text-[2rem] font-extrabold leading-[1.05] tracking-tight">
-          Call it before
-          <br />
-          the whistle, <span className="text-violet-light">{displayName.split(" ")[0]}</span>.
-        </h1>
+      {!onboarded && <OnboardingModal onDone={completeOnboarding} />}
 
-        <div className="mt-5 flex gap-3">
-          <Stat value={openCount} label={openCount === 1 ? "match open" : "matches open"} />
-          <Stat value={preds.length} label="picks made" tone="violet" />
-        </div>
+      <header className="px-5 pb-1 pt-7">
+        <p className="eyebrow">Match day</p>
+        <h1 className="mt-2 font-display text-[1.9rem] font-extrabold leading-[1.05] tracking-tight">
+          Call it, <span className="text-violet-light">{displayName.split(" ")[0]}</span>.
+        </h1>
       </header>
 
-      {/* category filter */}
-      <div className="sticky top-0 z-10 -mx-0 flex gap-2 overflow-x-auto px-5 py-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <Chip active={filter === "all"} onClick={() => setFilter("all")} label="All" emoji="✦" />
-        {present.map((c) => (
-          <Chip
-            key={c}
-            active={filter === c}
-            onClick={() => setFilter(c)}
-            label={CATEGORY_THEME[c].label}
-            emoji={CATEGORY_THEME[c].emoji}
-          />
-        ))}
+      {/* league selector */}
+      <div className="flex gap-2 overflow-x-auto px-5 py-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {visible.map((l) => {
+          const meta = SPORTS[l.sport];
+          const active = l.id === activeLeague;
+          return (
+            <button
+              key={l.id}
+              onClick={() => setActiveLeague(l.id)}
+              className={`flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-semibold transition ${
+                active ? `${meta.border} bg-white/[0.05] text-white` : "border-line text-muted"
+              }`}
+            >
+              <SportLogo sport={l.sport} className="h-3.5 w-auto" />
+              {l.org} {l.season}
+            </button>
+          );
+        })}
       </div>
 
-      {/* feed */}
+      {/* season stat banner */}
+      {league && stats && (
+        <div className="mx-5 mb-3 flex items-center justify-between rounded-xl border border-line bg-ink-800/60 px-4 py-3">
+          <div className="flex items-center gap-3">
+            <RankBadge tier={stats.tier} />
+            <div className="text-xs text-muted">
+              {stats.correct}/{stats.settled} correct · {Math.round(stats.accuracy * 100)}%
+            </div>
+          </div>
+          <div className="text-right">
+            <div className="font-mono text-lg font-bold text-lime">{stats.points}</div>
+            <div className="text-[0.65rem] text-muted">season pts</div>
+          </div>
+        </div>
+      )}
+
+      {/* fixtures */}
       <div className="space-y-4 px-5 pt-1">
-        {shown.length === 0 ? (
-          <p className="py-10 text-center text-sm text-muted">Nothing on the slate here yet. Try another sport.</p>
+        {board.length === 0 ? (
+          <p className="py-10 text-center text-sm text-muted">No fixtures on the board yet.</p>
         ) : (
-          shown.map((e, i) => (
-            <div key={e.id} className="animate-riseIn" style={{ animationDelay: `${i * 45}ms` }}>
-              <EventCard event={e} existing={preds.find((p) => p.eventId === e.id)} onSubmit={(o) => submit(e.id, o)} />
+          board.map((b, i) => (
+            <div key={b.fixture.id} className="animate-riseIn" style={{ animationDelay: `${i * 45}ms` }}>
+              <FixtureCard board={b} predictions={preds} onSubmit={submit} />
             </div>
           ))
         )}
       </div>
     </div>
-  );
-}
-
-function Stat({ value, label, tone }: { value: number; label: string; tone?: "violet" }) {
-  return (
-    <div className="flex-1 rounded-xl border border-line bg-ink-800/60 px-4 py-3">
-      <div className={`font-mono text-2xl font-bold ${tone === "violet" ? "text-violet-light" : "text-lime"}`}>
-        {String(value).padStart(2, "0")}
-      </div>
-      <div className="mt-0.5 text-xs text-muted">{label}</div>
-    </div>
-  );
-}
-
-function Chip({ active, onClick, label, emoji }: { active: boolean; onClick: () => void; label: string; emoji: string }) {
-  return (
-    <button
-      onClick={onClick}
-      className={`flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-semibold transition ${
-        active ? "border-violet bg-violet/15 text-white" : "border-line text-muted hover:text-white"
-      }`}
-    >
-      <span aria-hidden>{emoji}</span>
-      {label}
-    </button>
   );
 }

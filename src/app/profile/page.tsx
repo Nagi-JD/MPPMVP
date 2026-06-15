@@ -2,14 +2,27 @@
 import { useEffect, useState } from "react";
 import { getProvider } from "@/lib/data/client";
 import { useSession } from "@/store/useSession";
-import type { Profile } from "@/lib/types";
+import { RankBadge } from "@/components/RankBadge";
+import { SportLogo } from "@/components/SportLogo";
+import { SPORTS } from "@/lib/catalog";
+import type { League, Profile, SeasonStats } from "@/lib/types";
 
 export default function ProfilePage() {
   const { userId, displayName } = useSession();
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [seasons, setSeasons] = useState<Array<{ league: League; stats: SeasonStats }>>([]);
+  const provider = getProvider();
+
   useEffect(() => {
-    getProvider().getProfile(userId).then(setProfile);
-  }, [userId]);
+    (async () => {
+      setProfile(await provider.getProfile(userId));
+      const leagues = await provider.listLeagues();
+      const rows = await Promise.all(
+        leagues.map(async (league) => ({ league, stats: await provider.seasonStats(userId, league.id) }))
+      );
+      setSeasons(rows.filter((r) => r.stats.made > 0));
+    })();
+  }, [userId, provider]);
 
   return (
     <div className="px-5 pt-7">
@@ -21,24 +34,47 @@ export default function ProfilePage() {
           <p className="eyebrow">Predictor</p>
           <h1 className="font-display text-2xl font-extrabold tracking-tight">{displayName}</h1>
         </div>
+        <div className="ml-auto text-right">
+          <div className="font-mono text-2xl font-bold text-lime">{profile?.totalPoints ?? 0}</div>
+          <div className="text-[0.65rem] text-muted">total pts</div>
+        </div>
       </div>
 
-      <div className="mt-6 grid grid-cols-3 gap-3">
-        <Tile value={profile?.totalPoints ?? 0} label="Points" tone="lime" />
-        <Tile value={profile?.currentStreak ?? 0} label="Streak" tone="amber" />
-        <Tile value={profile?.bestStreak ?? 0} label="Best" tone="violet" />
-      </div>
+      <h2 className="eyebrow mb-2 mt-7">Rank by season</h2>
+      {seasons.length === 0 ? (
+        <p className="rounded-xl border border-line bg-ink-800/60 px-4 py-6 text-center text-sm text-muted">
+          Make some predictions to start a seasonal rank.
+        </p>
+      ) : (
+        <div className="space-y-3">
+          {seasons.map(({ league, stats }) => {
+            const meta = SPORTS[league.sport];
+            return (
+              <div key={league.id} className={`rounded-2xl border ${meta.border} bg-ink-800/60 p-4`}>
+                <div className="flex items-center gap-2">
+                  <SportLogo sport={league.sport} className="h-5 w-6" />
+                  <span className="font-display font-bold">{league.org} {league.season}</span>
+                  <RankBadge tier={stats.tier} className="ml-auto" />
+                </div>
+                <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+                  <Cell value={stats.points} label="Points" tone="text-lime" />
+                  <Cell value={`${Math.round(stats.accuracy * 100)}%`} label="Accuracy" tone={meta.accent} />
+                  <Cell value={`${stats.correct}/${stats.settled}`} label="Correct" tone="text-white" />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
 
-const TONE = { lime: "text-lime", amber: "text-amber", violet: "text-violet-light" } as const;
-
-function Tile({ value, label, tone }: { value: number; label: string; tone: keyof typeof TONE }) {
+function Cell({ value, label, tone }: { value: number | string; label: string; tone: string }) {
   return (
-    <div className="rounded-2xl border border-line bg-ink-800/60 px-3 py-5 text-center">
-      <div className={`font-mono text-3xl font-bold ${TONE[tone]}`}>{value}</div>
-      <div className="mt-1 text-xs text-muted">{label}</div>
+    <div className="rounded-xl border border-line bg-ink px-2 py-3">
+      <div className={`font-mono text-lg font-bold ${tone}`}>{value}</div>
+      <div className="mt-0.5 text-[0.65rem] text-muted">{label}</div>
     </div>
   );
 }

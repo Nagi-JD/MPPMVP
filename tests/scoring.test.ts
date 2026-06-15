@@ -1,42 +1,59 @@
 import { describe, it, expect } from "vitest";
-import { scorePrediction, applyStreak } from "@/lib/scoring";
-import type { GameEvent, Prediction, Profile } from "@/lib/types";
+import { scoreMarket, isCorrect, accuracy, rankTier, parsePodium } from "@/lib/scoring";
+import type { Market } from "@/lib/types";
 
-const event = (result: GameEvent["result"]): GameEvent => ({
-  id: "e1", externalId: "x", category: "football", title: "A vs B",
-  home: "A", away: "B", startTime: "", lockTime: "", status: "settled", result,
-});
-const pred = (choice: Prediction["choice"]): Prediction => ({
-  id: "p1", userId: "u1", eventId: "e1", choice, pointsAwarded: 0, settled: false,
+const market = (over: Partial<Market>): Market => ({
+  id: "m", fixtureId: "f", leagueId: "l", kind: "match_winner", label: "x",
+  input: "choice", difficulty: 1, lockTime: "", status: "settled", result: null, ...over,
 });
 
-describe("scorePrediction", () => {
-  it("awards 3 points for a correct pick", () => {
-    expect(scorePrediction(event("home"), pred("home"))).toBe(3);
+describe("scoreMarket", () => {
+  it("choice: difficulty × 10 when correct", () => {
+    expect(scoreMarket(market({ input: "choice", difficulty: 1, result: "A" }), "A")).toBe(10);
+    expect(scoreMarket(market({ input: "choice", difficulty: 3, result: "A" }), "A")).toBe(30);
   });
-  it("awards 0 for an incorrect pick", () => {
-    expect(scorePrediction(event("away"), pred("home"))).toBe(0);
+  it("choice: 0 when wrong or unsettled", () => {
+    expect(scoreMarket(market({ result: "A" }), "B")).toBe(0);
+    expect(scoreMarket(market({ result: null }), "A")).toBe(0);
   });
-  it("awards 0 when the event has no result", () => {
-    expect(scorePrediction(event(null), pred("home"))).toBe(0);
+  it("score: exact match only", () => {
+    const m = market({ input: "score", difficulty: 3, result: "110-108" });
+    expect(scoreMarket(m, "110-108")).toBe(30);
+    expect(scoreMarket(m, "110-109")).toBe(0);
+  });
+  it("podium: difficulty × 5 per correctly-placed entry", () => {
+    const m = market({ input: "podium", difficulty: 2, result: "Verstappen,Norris,Leclerc" });
+    expect(scoreMarket(m, "Verstappen,Norris,Leclerc")).toBe(30); // 3 × 2 × 5
+    expect(scoreMarket(m, "Verstappen,Leclerc,Norris")).toBe(10); // only P1 right
+    expect(scoreMarket(m, "Norris,Verstappen,Piastri")).toBe(0);
   });
 });
 
-describe("applyStreak", () => {
-  const base: Profile = { id: "u1", displayName: "U", totalPoints: 0, currentStreak: 2, bestStreak: 5 };
-  it("increments streak and adds points on a win", () => {
-    const r = applyStreak(base, 3);
-    expect(r.totalPoints).toBe(3);
-    expect(r.currentStreak).toBe(3);
-    expect(r.bestStreak).toBe(5);
+describe("isCorrect", () => {
+  it("true when any points scored", () => {
+    const m = market({ input: "podium", difficulty: 2, result: "A,B,C" });
+    expect(isCorrect(m, "A,X,Y")).toBe(true);
+    expect(isCorrect(m, "Z,X,Y")).toBe(false);
   });
-  it("raises bestStreak when current passes it", () => {
-    const r = applyStreak({ ...base, currentStreak: 5 }, 3);
-    expect(r.bestStreak).toBe(6);
+});
+
+describe("accuracy & rankTier", () => {
+  it("accuracy is correct/settled, 0 when none", () => {
+    expect(accuracy(3, 4)).toBe(0.75);
+    expect(accuracy(0, 0)).toBe(0);
   });
-  it("resets current streak to 0 on a loss", () => {
-    const r = applyStreak(base, 0);
-    expect(r.currentStreak).toBe(0);
-    expect(r.totalPoints).toBe(0);
+  it("rank requires volume then rewards accuracy", () => {
+    expect(rankTier(1, 3)).toBe("Rookie"); // too few resolved
+    expect(rankTier(0.85, 10)).toBe("Diamond");
+    expect(rankTier(0.66, 10)).toBe("Platinum");
+    expect(rankTier(0.5, 10)).toBe("Gold");
+    expect(rankTier(0.4, 10)).toBe("Silver");
+    expect(rankTier(0.1, 10)).toBe("Bronze");
+  });
+});
+
+describe("parsePodium", () => {
+  it("splits and trims", () => {
+    expect(parsePodium("A, B ,C")).toEqual(["A", "B", "C"]);
   });
 });
