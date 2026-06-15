@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Lint · Typecheck · Test · Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      # The steps below activate once the app scaffold lands. They are guarded so
+      # CI is green on the docs-only foundation and becomes meaningful as code arrives.
+      - name: Install dependencies
+        run: if [ -f package-lock.json ]; then npm ci; else echo "no package.json yet — skipping"; fi
+
+      - name: Lint
+        run: if [ -f package.json ] && npm run | grep -q " lint"; then npm run lint; else echo "skip"; fi
+
+      - name: Typecheck
+        run: if [ -f package.json ] && npm run | grep -q " typecheck"; then npm run typecheck; else echo "skip"; fi
+
+      - name: Test
+        run: if [ -f package.json ] && npm run | grep -q " test"; then npm test; else echo "skip"; fi
+
+      - name: Build
+        run: if [ -f package.json ] && npm run | grep -q " build"; then npm run build; else echo "skip"; fi
