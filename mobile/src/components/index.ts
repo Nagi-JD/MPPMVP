@@ -14,3 +14,5 @@ export { AnimatedCounter } from "./AnimatedCounter";
 export { PointsSummary } from "./PointsSummary";
 export { ScreenHeader } from "./ScreenHeader";
 export { SportTabs, type SportTab } from "./SportTabs";
+export { PredictionButton, type PredictionButtonState } from "./PredictionButton";
+export { MatchCard } from "./MatchCard";
