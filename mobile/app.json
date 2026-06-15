@@ -1,0 +1,18 @@
+{
+  "expo": {
+    "name": "MPP+",
+    "slug": "mpp-plus",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "scheme": "mppplus",
+    "newArchEnabled": true,
+    "splash": {
+      "backgroundColor": "#0A0A0F"
+    },
+    "ios": { "supportsTablet": false },
+    "android": {
+      "adaptiveIcon": { "backgroundColor": "#0A0A0F" }
+    }
+  }
+}
