@@ -1,37 +1,28 @@
 import React from "react";
-import { Text, StyleSheet } from "react-native";
-import { useSportTheme } from "@/theme/useSportTheme";
+import { Text, View, StyleSheet } from "react-native";
+import { COLORS } from "@/theme/tokens";
 import { FONTS } from "@/theme/fonts";
-import type { RankTier } from "@/types";
+import { TIER_COLOR } from "@/lib/catalog";
+import type { RankTier } from "@/lib/types";
 
-export function RankBadge({ tier, sportId }: { tier: RankTier; sportId?: string }) {
-  const t = useSportTheme(sportId);
-  const color = (): string => {
-    switch (tier) {
-      case "Diamond": return t.accent;
-      case "Platinum": return t.primary;
-      case "Gold": return "#F4A800";
-      case "Silver": return t.mutedText;
-      case "Bronze": return "#C98A5E";
-      default: return t.mutedText;
-    }
-  };
+/** Tier pill (web RankBadge). */
+export function RankBadge({ tier }: { tier: RankTier; sportId?: string }) {
   return (
-    <Text style={[styles.badge, { color: color(), borderColor: t.border, backgroundColor: t.background }]}>
-      {tier.toUpperCase()}
-    </Text>
+    <View style={styles.badge}>
+      <Text style={[styles.text, { color: TIER_COLOR[tier] }]}>{tier.toUpperCase()}</Text>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   badge: {
-    fontFamily: FONTS.monoBold,
-    fontSize: 10,
-    letterSpacing: 1,
+    alignSelf: "flex-start",
     borderWidth: StyleSheet.hairlineWidth,
+    borderColor: COLORS.line,
+    backgroundColor: COLORS.ink,
     borderRadius: 999,
     paddingHorizontal: 8,
     paddingVertical: 3,
-    overflow: "hidden",
   },
+  text: { fontFamily: FONTS.monoBold, fontSize: 10, letterSpacing: 1.2 },
 });
