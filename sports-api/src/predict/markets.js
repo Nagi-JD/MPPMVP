@@ -4,7 +4,8 @@
 import * as cache from "../cache.js";
 import * as openf1 from "../clients/openf1.js";
 import * as apisports from "../clients/apisports.js";
-import { deriveSessionResults } from "../normalize.js";
+import * as jolpica from "../clients/jolpica.js";
+import { deriveSessionResults, normalizeStandings, normalizeDriverStandings } from "../normalize.js";
 import { getLeague, apiSportsSeasonString } from "./leagues.js";
 import { LEAGUE_MAP } from "../config.js";
 
@@ -328,6 +329,10 @@ export async function getBasketballBoard(leagueId) {
       .sort((a, b) => (a.date || "").localeCompare(b.date || ""))
       .slice(-10);
 
+    // Top-scorer needs 1 box-score request per game. On the Free plan
+    // (10 req/min) we cap it to the most recent games and pace cold fetches.
+    const scorerGids = new Set(sorted.slice(-6).map((x) => String(x.id)));
+
     const boards = [];
     for (const g of sorted) {
       const gid = String(g.id);
@@ -398,10 +403,14 @@ export async function getBasketballBoard(leagueId) {
       const markets = [winnerMarket, spreadMarket];
 
       // Top scorer (MVP) — options + result from per-player box scores. Costs 1
-      // API request per game; cached 24h. Skipped gracefully if unavailable.
+      // API request per game; cached 24h. Capped to recent games and paced on
+      // cold fetches to respect the Free plan's 10 req/min. Skipped gracefully.
       try {
+        if (!scorerGids.has(gid)) throw new Error("skip-scorer (older game)");
+        const cacheKey = `predict:bball:players:${gid}`;
+        if (cache.get(cacheKey) === undefined) await sleep(700); // pace cold fetches
         const playerStats = await cache.getOrFetch(
-          `predict:bball:players:${gid}`,
+          cacheKey,
           TTL_BBALL_PLAYERS,
           () => apisports.getGamePlayerStats(gid)
         );
@@ -442,12 +451,124 @@ export async function getBasketballBoard(leagueId) {
   });
 }
 
+const TTL_SEASON = 8 * 60 * 60 * 1000; // 8h
+
 /**
- * Unified board accessor.
+ * Long-term "pre-season" markets for a league, returned as a single synthetic
+ * `season`-scope fixture so it renders alongside fixtures. Options come from
+ * standings; results stay null (settled at season end). Open all season:
+ * lockTime = end of the season.
+ */
+async function seasonBoard(leagueId) {
+  const league = getLeague(leagueId);
+  if (!league) return null;
+
+  if (leagueId === "f1") {
+    const year = new Date().getFullYear();
+    return cache.getOrFetch(`predict:season:f1:${year}`, TTL_SEASON, async () => {
+      let drivers = [];
+      let constructors = [];
+      try {
+        const rows = normalizeDriverStandings(await jolpica.getDriverStandings(year));
+        drivers = [...new Set(rows.map((r) => r.name).filter(Boolean))];
+        constructors = [...new Set(rows.map((r) => r?.extra?.constructor).filter(Boolean))];
+      } catch {
+        /* standings unavailable */
+      }
+      const lock = `${year}-12-31T23:59:59+00:00`;
+      const status = new Date() < new Date(lock) ? "scheduled" : "locked";
+      const fixtureId = `f1-season-${year}`;
+      const fixture = {
+        id: fixtureId, leagueId: "f1", sport: "f1", scope: "season",
+        title: `Championnat F1 ${year}`, startTime: lock, lockTime: lock, status,
+      };
+      const markets = [];
+      if (drivers.length) {
+        markets.push({
+          id: `${fixtureId}-driver`, fixtureId, leagueId: "f1", kind: "driver_champion",
+          label: "Champion du monde (pilote)", input: "choice", difficulty: 3,
+          options: drivers, lockTime: lock, status, result: null,
+        });
+      }
+      if (constructors.length) {
+        markets.push({
+          id: `${fixtureId}-constructor`, fixtureId, leagueId: "f1", kind: "constructor_champion",
+          label: "Champion du monde (constructeur)", input: "choice", difficulty: 3,
+          options: constructors, lockTime: lock, status, result: null,
+        });
+      }
+      return markets.length ? { fixture, markets } : null;
+    });
+  }
+
+  const apiLeagueId = LEAGUE_MAP[leagueId];
+  if (!apiLeagueId) return null;
+  const season = apiSportsSeasonString(league.season);
+  return cache.getOrFetch(`predict:season:${leagueId}:${season}`, TTL_SEASON, async () => {
+    let teams = [];
+    const byConf = new Map();
+    try {
+      const rows = normalizeStandings(await apisports.getStandings({ leagueId: apiLeagueId, season }));
+      teams = [...new Set(rows.map((r) => r.name).filter(Boolean))];
+      for (const r of rows) {
+        const conf = r?.extra?.group;
+        if (conf && r.name) {
+          if (!byConf.has(conf)) byConf.set(conf, []);
+          byConf.get(conf).push(r.name);
+        }
+      }
+    } catch {
+      /* standings unavailable */
+    }
+    if (!teams.length) return null;
+    const lock = `${league.season}-06-30T23:59:59+00:00`;
+    const status = new Date() < new Date(lock) ? "scheduled" : "locked";
+    const fixtureId = `${leagueId}-season-${league.season}`;
+    const fixture = {
+      id: fixtureId, leagueId, sport: "basketball", scope: "season",
+      title: `${league.org} ${season}`, startTime: lock, lockTime: lock, status,
+    };
+    const markets = [
+      {
+        id: `${fixtureId}-champion`, fixtureId, leagueId, kind: "season_champion",
+        label: `Champion ${league.org}`, input: "choice", difficulty: 3,
+        options: teams, lockTime: lock, status, result: null,
+      },
+    ];
+    // NBA: add conference winners. Standings group by DIVISION, so keep only
+    // groups that are actual conferences (East/West) to avoid a market per
+    // division. If the feed exposes no conference-level group, we ship just the
+    // overall champion market.
+    if (leagueId === "nba") {
+      for (const [conf, list] of byConf) {
+        if (!/conference/i.test(conf)) continue; // skip divisions, keep East/West conferences
+        const opts = [...new Set(list)];
+        if (opts.length) {
+          markets.push({
+            id: `${fixtureId}-conf-${conf.replace(/\s+/g, "").toLowerCase()}`,
+            fixtureId, leagueId, kind: "season_champion",
+            label: `Vainqueur ${conf}`, input: "choice", difficulty: 3,
+            options: opts, lockTime: lock, status, result: null,
+          });
+        }
+      }
+    }
+    return { fixture, markets };
+  });
+}
+
+/**
+ * Unified board accessor. Prepends the league's pre-season markets fixture.
  */
 export async function getBoard(leagueId) {
-  if (leagueId === "f1") return getF1Board();
-  return getBasketballBoard(leagueId);
+  const base = leagueId === "f1" ? await getF1Board() : await getBasketballBoard(leagueId);
+  let season = null;
+  try {
+    season = await seasonBoard(leagueId);
+  } catch {
+    season = null;
+  }
+  return season ? [season, ...base] : base;
 }
 
 /**
