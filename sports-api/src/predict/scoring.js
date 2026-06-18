@@ -45,6 +45,7 @@ export function accuracy(correct, settled) {
  */
 export function tier(acc, settled) {
   if (settled < 5) return "Rookie";
+  if (settled >= 20 && acc >= 0.9) return "Legend";
   if (acc >= 0.8) return "Diamond";
   if (acc >= 0.65) return "Platinum";
   if (acc >= 0.5) return "Gold";

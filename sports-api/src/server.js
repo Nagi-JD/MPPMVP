@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
-import { PORT, CORS_ORIGINS } from "./config.js";
+import { PORT, CORS_ORIGINS, NOTIFY_INTERVAL_MS } from "./config.js";
+import { startNotifyCron } from "./predict/notify.js";
 
 import categoriesRouter from "./routes/categories.js";
 import gamesRouter from "./routes/games.js";
@@ -39,6 +40,8 @@ app.use((err, _req, res, _next) => {
 
 app.listen(PORT, () => {
   console.log(`mpp-sports-api listening on http://localhost:${PORT}`);
+  // Settlement → push-notification cron (no-op unless SUPABASE_URL is set).
+  startNotifyCron(NOTIFY_INTERVAL_MS);
 });
 
 export default app;

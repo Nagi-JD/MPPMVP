@@ -15,6 +15,12 @@ export const APISPORTS_BASKETBALL_BASE =
 export const OPENF1_BASE = process.env.OPENF1_BASE || "https://api.openf1.org/v1";
 export const JOLPICA_BASE = process.env.JOLPICA_BASE || "https://api.jolpi.ca/ergast/f1";
 
+// Supabase (for the settlement → send-push notification cron). Anon key only.
+export const SUPABASE_URL = process.env.SUPABASE_URL || "";
+export const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || "";
+// How often the settlement-notification cron runs (ms). Default: 5 minutes.
+export const NOTIFY_INTERVAL_MS = Number(process.env.NOTIFY_INTERVAL_MS) || 300_000;
+
 // category -> basketball leagueId. f1 is special-cased (not in this map).
 export const LEAGUE_MAP = {
   nba: 12,

@@ -1,0 +1,35 @@
+# Render Blueprint for the MPP+ sports-api backend.
+#
+# Deploy: Render dashboard → New → Blueprint → connect the GitHub repo
+# (Nagi-JD/MPPMVP). Render reads this file, creates the web service, and prompts
+# for the secret env vars marked `sync: false` (enter them in the dashboard —
+# they are NEVER committed).
+#
+# Render sets PORT automatically; the app reads process.env.PORT. The free plan
+# spins down after inactivity (first request after idle has a ~30-60s cold
+# start) and uses an ephemeral filesystem (the .data/predictions.json store
+# resets on redeploy/restart) — fine for collaborator testing.
+services:
+  - type: web
+    name: mpp-sports-api
+    runtime: node
+    rootDir: sports-api
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      # Required for basketball (NBA/EuroLeague/LNB). F1 needs no key.
+      - key: APISPORTS_KEY
+        sync: false
+      - key: CORS_ORIGINS
+        value: "*"
+      # Optional: enables the settlement → push-notification cron. Anon key only,
+      # never service_role. Leave unset to disable notifications for now.
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: NOTIFY_INTERVAL_MS
+        value: "300000"
