@@ -40,3 +40,10 @@ export async function getStandings({ leagueId, season }) {
 export async function getGameById(id) {
   return apiGet(`/games?id=${encodeURIComponent(id)}`);
 }
+
+// Per-player box scores for one game (points/rebounds/assists per player).
+// Used to build + settle the "top scorer (MVP)" market. 1 request per game —
+// cache aggressively (Free plan = 100 requests/day).
+export async function getGamePlayerStats(id) {
+  return apiGet(`/games/statistics/players?id=${encodeURIComponent(id)}`);
+}

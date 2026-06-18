@@ -11,8 +11,19 @@ import { LEAGUE_MAP } from "../config.js";
 const TTL_F1_BOARD = 60_000; // 1 min
 const TTL_BBALL_BOARD = 6 * 60 * 60 * 1000; // 6h (historical, quota-conscious)
 const TTL_F1_RESULT = 24 * 60 * 60 * 1000; // results don't change once final
+const TTL_BBALL_PLAYERS = 24 * 60 * 60 * 1000; // 24h — box scores immutable for final games
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// Winning-margin buckets for the "point spread" market (~5-point bands).
+const MARGIN_BUCKETS = ["1-5", "6-10", "11-15", "16-20", "21+"];
+function marginBucket(margin) {
+  if (margin <= 5) return "1-5";
+  if (margin <= 10) return "6-10";
+  if (margin <= 15) return "11-15";
+  if (margin <= 20) return "16-20";
+  return "21+";
+}
 
 /**
  * Fixture status from a session/now.
@@ -254,12 +265,12 @@ export async function getBasketballBoard(leagueId) {
         status,
       };
 
-      const market = {
+      const winnerMarket = {
         id: `${leagueId}-${gid}-winner`,
         fixtureId,
         leagueId,
         kind: "match_winner",
-        label: "Match Winner",
+        label: "Vainqueur du match",
         input: "choice",
         difficulty: 1,
         options: [home, away].filter(Boolean),
@@ -268,7 +279,67 @@ export async function getBasketballBoard(leagueId) {
         result,
       };
 
-      boards.push({ fixture, markets: [market] });
+      // Point-spread (écart de points): pick the winning-margin band.
+      let spreadResult = null;
+      if (isFinal && hs != null && as != null) {
+        const margin = Math.abs(hs - as);
+        spreadResult = margin === 0 ? null : marginBucket(margin);
+      }
+      const spreadMarket = {
+        id: `${leagueId}-${gid}-spread`,
+        fixtureId,
+        leagueId,
+        kind: "point_spread",
+        label: "Écart de points (vainqueur)",
+        input: "choice",
+        difficulty: 2,
+        options: MARGIN_BUCKETS,
+        lockTime: startTime,
+        status,
+        result: spreadResult,
+      };
+
+      const markets = [winnerMarket, spreadMarket];
+
+      // Top scorer (MVP) — options + result from per-player box scores. Costs 1
+      // API request per game; cached 24h. Skipped gracefully if unavailable.
+      try {
+        const playerStats = await cache.getOrFetch(
+          `predict:bball:players:${gid}`,
+          TTL_BBALL_PLAYERS,
+          () => apisports.getGamePlayerStats(gid)
+        );
+        const names = [...new Set((playerStats || []).map((s) => s?.player?.name).filter(Boolean))];
+        if (names.length > 0) {
+          let topScorer = null;
+          if (isFinal) {
+            let best = null;
+            for (const s of playerStats) {
+              const pts = Number(s?.points) || 0;
+              const name = s?.player?.name;
+              if (name && (!best || pts > best.pts)) best = { name, pts };
+            }
+            topScorer = best?.name ?? null;
+          }
+          markets.push({
+            id: `${leagueId}-${gid}-scorer`,
+            fixtureId,
+            leagueId,
+            kind: "top_scorer",
+            label: "Meilleur scoreur (MVP)",
+            input: "choice",
+            difficulty: 2,
+            options: names,
+            lockTime: startTime,
+            status,
+            result: topScorer,
+          });
+        }
+      } catch {
+        // Box scores unavailable / rate-limited — skip the top-scorer market.
+      }
+
+      boards.push({ fixture, markets });
     }
 
     return boards;
