@@ -38,17 +38,28 @@ export function accuracy(correct, settled) {
   return correct / settled;
 }
 
+// Rank barème — config table (mirror of mobile src/lib/scoring.ts), highest
+// accuracy first. Keep these two tables in sync.
+//   0-10% Bronze · 10-20% Argent · 20-30% Or · 30-50% Platine · 50-70% Diamant · 70-100% Légende
+export const MIN_SETTLED_FOR_RANK = 5;
+
+export const RANK_THRESHOLDS = [
+  { tier: "Legend", minAccuracy: 0.7 },
+  { tier: "Diamond", minAccuracy: 0.5 },
+  { tier: "Platinum", minAccuracy: 0.3 },
+  { tier: "Gold", minAccuracy: 0.2 },
+  { tier: "Silver", minAccuracy: 0.1 },
+  { tier: "Bronze", minAccuracy: 0.0 },
+];
+
 /**
- * tier(acc, settled):
- *   settled<5 -> Rookie
- *   acc>=.8 Diamond; >=.65 Platinum; >=.5 Gold; >=.35 Silver; else Bronze
+ * tier(acc, settled): "Rookie" until MIN_SETTLED_FOR_RANK settled predictions,
+ * then the highest tier whose minAccuracy is met (see RANK_THRESHOLDS).
  */
 export function tier(acc, settled) {
-  if (settled < 5) return "Rookie";
-  if (settled >= 20 && acc >= 0.9) return "Legend";
-  if (acc >= 0.8) return "Diamond";
-  if (acc >= 0.65) return "Platinum";
-  if (acc >= 0.5) return "Gold";
-  if (acc >= 0.35) return "Silver";
+  if (settled < MIN_SETTLED_FOR_RANK) return "Rookie";
+  for (const t of RANK_THRESHOLDS) {
+    if (acc >= t.minAccuracy) return t.tier;
+  }
   return "Bronze";
 }

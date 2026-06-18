@@ -2,9 +2,14 @@
 
 import { Router } from "express";
 import { asyncRoute } from "./_wrap.js";
-import { listLeagues, getLeague } from "../predict/leagues.js";
+import { listLeagues, getLeague, apiSportsSeasonString } from "../predict/leagues.js";
 import { getBoard, findMarketById } from "../predict/markets.js";
 import * as store from "../predict/store.js";
+import * as cache from "../cache.js";
+import * as apisports from "../clients/apisports.js";
+import * as jolpica from "../clients/jolpica.js";
+import { normalizeStandings, normalizeDriverStandings } from "../normalize.js";
+import { LEAGUE_MAP } from "../config.js";
 import {
   getPredictions,
   seasonStats,
@@ -14,6 +19,8 @@ import {
 } from "../predict/settle.js";
 
 const router = Router();
+
+const TTL_TEAMS = 8 * 60 * 60_000; // 8h — team rosters change rarely
 
 // GET /v1/app/leagues -> League[]
 router.get(
@@ -32,6 +39,38 @@ router.get(
       return res.status(404).json({ error: `Unknown league: ${id}` });
     }
     res.json(await getBoard(id));
+  })
+);
+
+// GET /v1/app/leagues/:id/teams -> { name }[]
+// Followable teams for a league: basketball = standings team names; F1 =
+// constructor names from the driver standings. Real upstream data, cached 8h.
+router.get(
+  "/app/leagues/:id/teams",
+  asyncRoute(async (req, res) => {
+    const { id } = req.params;
+    const league = getLeague(id);
+    if (!league) return res.status(404).json({ error: `Unknown league: ${id}` });
+
+    if (id === "f1") {
+      const year = Number(req.query.year) || new Date().getFullYear();
+      const teams = await cache.getOrFetch(`app:teams:f1:${year}`, TTL_TEAMS, async () => {
+        const rows = normalizeDriverStandings(await jolpica.getDriverStandings(year));
+        const names = [...new Set(rows.map((r) => r?.extra?.constructor).filter(Boolean))];
+        return names.map((name) => ({ name }));
+      });
+      return res.json(teams);
+    }
+
+    const apiLeagueId = LEAGUE_MAP[id];
+    if (!apiLeagueId) return res.json([]);
+    const season = apiSportsSeasonString(league.season);
+    const teams = await cache.getOrFetch(`app:teams:${id}:${season}`, TTL_TEAMS, async () => {
+      const rows = normalizeStandings(await apisports.getStandings({ leagueId: apiLeagueId, season }));
+      const names = [...new Set(rows.map((r) => r?.name).filter(Boolean))].sort();
+      return names.map((name) => ({ name }));
+    });
+    res.json(teams);
   })
 );
 
