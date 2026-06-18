@@ -68,6 +68,19 @@ export async function getF1Board() {
       );
     }
 
+    // Group every session by meeting (race weekend) so a race fixture can
+    // expose its Qualifying / Sprint / Race markets together.
+    const meetings = new Map(); // meeting_key -> { quali, sprint, race }
+    for (const s of sessions) {
+      const mk = s.meeting_key;
+      if (mk == null) continue;
+      const entry = meetings.get(mk) || {};
+      if (s.session_name === "Race") entry.race = s;
+      else if (s.session_name === "Qualifying") entry.quali = s;
+      else if (s.session_name === "Sprint") entry.sprint = s;
+      meetings.set(mk, entry);
+    }
+
     const races = sessions
       .filter((s) => s.session_name === "Race")
       .sort((a, b) => (a.date_start || "").localeCompare(b.date_start || ""));
@@ -120,36 +133,68 @@ export async function getF1Board() {
       let options = driverNames(drivers);
       if (options.length === 0 && fallbackDrivers) options = fallbackDrivers;
 
-      // Results when final.
-      let winner = null;
-      let podium = null;
-      if (isFinal) {
+      const meeting = meetings.get(session.meeting_key) || { race: session };
+
+      // Settle one session's podium (winner + "p1,p2,p3") once it has ended.
+      // Cached 24h per session; degrades to nulls on OpenF1 404/429.
+      const podiumOf = async (sess) => {
+        if (!sess || !sessionEnded(sess, now)) return { winner: null, podium: null };
         try {
           const results = await cache.getOrFetch(
-            `predict:f1:results:${sk}`,
+            `predict:f1:results:${sess.session_key}`,
             TTL_F1_RESULT,
             async () => {
               await sleep(250);
-              const positions = await openf1.getPositions(sk);
+              const positions = await openf1.getPositions(sess.session_key);
               return deriveSessionResults(drivers, positions);
             }
           );
           if (results.length > 0) {
-            winner = results[0].driver;
-            podium = results.slice(0, 3).map((r) => r.driver).join(",");
+            return {
+              winner: results[0].driver,
+              podium: results.slice(0, 3).map((r) => r.driver).join(","),
+            };
           }
         } catch {
-          // Position stream unavailable (OpenF1 404/429 for some sessions).
-          // Degrade gracefully: no result yet -> fixture stays "locked", not "settled".
-          winner = null;
-          podium = null;
+          /* position stream unavailable -> no result yet */
+        }
+        return { winner: null, podium: null };
+      };
+
+      const raceRes = await podiumOf(meeting.race || session);
+      const qualiRes = await podiumOf(meeting.quali);
+      const sprintRes = await podiumOf(meeting.sprint);
+
+      // Fastest lap of the race: min positive lap_duration -> driver.
+      let fastest = null;
+      if (sessionEnded(session, now)) {
+        try {
+          fastest = await cache.getOrFetch(`predict:f1:fastest:${sk}`, TTL_F1_RESULT, async () => {
+            await sleep(250);
+            const laps = await openf1.getLaps(sk);
+            let best = null;
+            for (const l of laps) {
+              const d = Number(l.lap_duration);
+              if (Number.isFinite(d) && d > 0 && (!best || d < best.d)) best = { d, num: l.driver_number };
+            }
+            if (best == null) return null;
+            const dr = (drivers || []).find((x) => x.driver_number === best.num);
+            return dr
+              ? dr.full_name || `${dr.first_name ?? ""} ${dr.last_name ?? ""}`.trim() || dr.name_acronym
+              : null;
+          });
+        } catch {
+          fastest = null;
         }
       }
 
-      // A fixture is only "settled" once we actually have a result.
-      const fixtureStatus = f1FixtureStatus(session, now, isFinal && winner != null);
+      // Per-session status: scheduled before its start, settled once its result
+      // is known, locked in between. A market locks at ITS session's start.
+      const sessStatus = (sess, hasResult) =>
+        f1FixtureStatus(sess || session, now, sessionEnded(sess || session, now) && hasResult);
+
       const startTime = session.date_start || null;
-      const lockTime = startTime; // predictions lock at start
+      const fixtureStatus = f1FixtureStatus(session, now, sessionEnded(session, now) && raceRes.winner != null);
 
       const fixtureId = `f1-${sk}`;
       const fixture = {
@@ -160,39 +205,90 @@ export async function getF1Board() {
         title: `${session.country_name || session.location || "Grand Prix"} GP`,
         venue: session.circuit_short_name || session.location || undefined,
         startTime,
-        lockTime,
+        lockTime: startTime,
         status: fixtureStatus,
       };
 
-      const winnerMarket = {
+      const markets = [];
+
+      // Qualifying podium — locks at qualifying start (before the race).
+      if (meeting.quali) {
+        markets.push({
+          id: `f1-${sk}-quali`,
+          fixtureId,
+          leagueId: "f1",
+          kind: "quali_podium",
+          label: "Podium qualifications",
+          input: "podium",
+          difficulty: 2,
+          options,
+          lockTime: meeting.quali.date_start || startTime,
+          status: sessStatus(meeting.quali, qualiRes.podium != null),
+          result: qualiRes.podium,
+        });
+      }
+
+      // Race winner + podium — lock at race start.
+      markets.push({
         id: `f1-${sk}-winner`,
         fixtureId,
         leagueId: "f1",
         kind: "race_winner",
-        label: "Race Winner",
+        label: "Vainqueur de la course",
         input: "choice",
         difficulty: 2,
         options,
-        lockTime,
+        lockTime: startTime,
         status: fixtureStatus,
-        result: winner,
-      };
-
-      const podiumMarket = {
+        result: raceRes.winner,
+      });
+      markets.push({
         id: `f1-${sk}-podium`,
         fixtureId,
         leagueId: "f1",
         kind: "race_podium",
-        label: "Podium (P1, P2, P3)",
+        label: "Podium course (P1, P2, P3)",
         input: "podium",
         difficulty: 3,
         options,
-        lockTime,
+        lockTime: startTime,
         status: fixtureStatus,
-        result: podium,
-      };
+        result: raceRes.podium,
+      });
 
-      boards.push({ fixture, markets: [winnerMarket, podiumMarket] });
+      // Sprint podium — only on sprint weekends; locks at sprint start.
+      if (meeting.sprint) {
+        markets.push({
+          id: `f1-${sk}-sprint`,
+          fixtureId,
+          leagueId: "f1",
+          kind: "sprint_podium",
+          label: "Podium sprint",
+          input: "podium",
+          difficulty: 2,
+          options,
+          lockTime: meeting.sprint.date_start || startTime,
+          status: sessStatus(meeting.sprint, sprintRes.podium != null),
+          result: sprintRes.podium,
+        });
+      }
+
+      // Fastest lap of the race — locks at race start.
+      markets.push({
+        id: `f1-${sk}-fastest`,
+        fixtureId,
+        leagueId: "f1",
+        kind: "fastest_lap",
+        label: "Meilleur tour en course",
+        input: "choice",
+        difficulty: 2,
+        options,
+        lockTime: startTime,
+        status: sessStatus(session, fastest != null),
+        result: fastest,
+      });
+
+      boards.push({ fixture, markets });
     }
 
     return boards;
