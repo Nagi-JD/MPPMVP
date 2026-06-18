@@ -26,6 +26,28 @@ function marginBucket(margin) {
   return "21+";
 }
 
+// Recent form (last up-to-5 finished results, most recent first) for a team,
+// derived from the already-fetched games list — no extra API calls.
+function teamForm(teamName, games) {
+  return (games || [])
+    .filter((g) => {
+      const h = g?.teams?.home?.name;
+      const a = g?.teams?.away?.name;
+      const hs = g?.scores?.home?.total;
+      const as = g?.scores?.away?.total;
+      return (h === teamName || a === teamName) && hs != null && as != null;
+    })
+    .sort((x, y) => (y.date || "").localeCompare(x.date || ""))
+    .slice(0, 5)
+    .map((g) => {
+      const teamIsHome = g?.teams?.home?.name === teamName;
+      const hs = g?.scores?.home?.total;
+      const as = g?.scores?.away?.total;
+      const won = teamIsHome ? hs > as : as > hs;
+      return won ? "W" : "L";
+    });
+}
+
 /**
  * Fixture status from a session/now.
  *  - upcoming -> "scheduled"
@@ -364,6 +386,12 @@ export async function getBasketballBoard(leagueId) {
         startTime,
         lockTime: startTime,
         status,
+        // Pre-match stats: recent form (last 5 W/L) for each team, from the
+        // already-fetched games list (no extra API calls).
+        stats:
+          home && away
+            ? { home: { name: home, form: teamForm(home, games) }, away: { name: away, form: teamForm(away, games) } }
+            : undefined,
       };
 
       const winnerMarket = {
